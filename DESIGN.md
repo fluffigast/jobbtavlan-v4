@@ -116,12 +116,34 @@ meddelandehantering, och ett planeringsverktyg är inte det. Den ärliga vägen
 framåt är att låta personalen dela ett sms till appen via systemets delningsmeny,
 vilket är ett tryck i stället för en avskrift. Det är inte byggt.
 
-**Ingen inloggning och inga roller.** Samma lucka som i v3, och nu syns den
-tydligare: appen ligger i fickan på den som har den. En snickare som får appen
-ser löneunderlagets grannar, semesterdagar och hela kundregistret. Det som
-behövs är inloggning per person och en avskalad vy för den som inte är
-arbetsledare. Det kräver en server, och en server kräver ett beslut om var
-persondata får ligga. Därför står det här i stället för att vara halvbyggt.
+**Sms läses fortfarande in för hand**, av skälen ovan. Det är den sista biten
+teater som står kvar.
 
-**Allt ligger på enheten.** Två telefoner delar inte plan. För en firma med en
-arbetsledare är det inte fel, men det är en gräns och inte en egenskap.
+
+## Delad plan, roller och krockar
+
+Den första versionen av v4 höll planen i telefonen. Det var fel väg. Ett
+planeringsverktyg som inte delar planen är ett anteckningsblock: sjukanmälan når
+ingen, två personer ser olika veckor, och försvinner telefonen är planen borta.
+
+Nu finns en server i `server/`. Den är avsiktligt liten: en JSON-fil som skrivs
+helt eller inte alls, sessioner i minnet, inga beroenden utanför Node. En firma
+med sex anställda ändrar planen några gånger om dagen, och då är en databas en
+sak till som kan gå sönder på ett tak i Norrland.
+
+**Roller.** Arbetsledaren ändrar planen. Snickaren ser den, sjukanmäler sig själv
+och rapporterar skumma sms. Reglerna står i `src/domain/roles.ts` och används av
+båda sidor, men bara serverns ord gäller: appen ligger i någon annans telefon och
+får aldrig vara den som avgör. Appen gömmer det som ändå skulle nekas, för en
+knapp som alltid säger nej är sämre än ingen knapp. Kundregistret syns inte alls
+för en snickare, för en tappad telefon ska inte vara en tappad kundlista.
+
+**Krockar.** Två personer kan trycka samtidigt. Servern räknar upp en revision
+vid varje skrivning och avvisar den som räknat på ett gammalt underlag. Klienten
+svarar inte med att skriva över, utan med att göra om samma handling på det
+servern har. Den som satte in Maria får Maria insatt, även om någon hann boka ett
+jobb emellan.
+
+**Utan nät.** Allt fungerar vidare lokalt, och skärmen säger att de andra inte
+ser det än. Det är sämre än synk, men det är ärligt, och det är vad en telefon på
+ett tak faktiskt kan lova.

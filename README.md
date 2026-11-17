@@ -19,10 +19,29 @@ på en riktig telefon. Ändringar sparas lokalt på enheten.
 egen testkörare (`npm test`). De testar de riktiga modulerna, inget är ersatt
 med attrapper.
 
+Den delade planen är provad med två inloggade klienter mot en riktig server:
+arbetsledaren fyller en lucka, och snickarens skärm räknar om sig utan att någon
+trycker uppdatera. Provet ligger i `scripts/prov-delad-plan.mjs`.
+
 Körd och genomgången på Android (emulator Pixel 9, Android 16, Expo Go, SDK 58).
 Paketeringen för iOS går igenom (`npx expo export --platform ios`), men appen är
 inte startad på en iOS-enhet: den här maskinen har Xcode utan nedladdad
 simulatorkörtid. Inget i koden är Android-specifikt, men iOS är alltså oprövat.
+
+## Delad plan
+
+Utan server ligger planen i telefonen. Med server ser hela firman samma plan,
+och sjukanmälan når arbetsledaren utan ett telefonsamtal.
+
+    npm run server                                      # port 8080, data i .data/
+    npm run server:konto -- erik erik ledare <pinkod>   # arbetsledare
+    npm run server:konto -- jonas jonas snickare <pinkod>
+
+Logga sedan in i appen under Skydd, med serveradressen, ditt namn och pinkoden.
+Pinkoderna lagras hashade i datafilen. Skriv dem aldrig i repot.
+
+Två roller: arbetsledaren ändrar planen, snickaren ser den, sjukanmäler sig själv
+och rapporterar skumma sms. Servern avgör, inte appen.
 
 ## Webbversion och publicering
 

@@ -18,6 +18,18 @@ besluten bakom omskrivningen.
 - `npx expo start` startar Metro, `a` öppnar på Android, `i` på iOS.
 - `npx expo export --platform ios` paketerar utan att starta, bra när ingen
   simulator finns installerad.
+- `npm run server` startar den delade planen lokalt. `npm run server:konto`
+  lägger upp en inloggning.
+
+## Delad plan
+
+- `server/` egen liten server utan beroenden: `store.ts` (en JSON-fil, skriven
+  helt eller inte alls), `main.ts` (http och sessioner), `konto.ts` (inloggningar).
+- `src/sync.ts` klientsidan. Allt får misslyckas utan att appen gör det.
+- `src/domain/roles.ts` reglerna för vem som får ändra vad. Appen gömmer, servern
+  avgör. Ändra aldrig reglerna bara på ena sidan.
+- Krockar löses genom att göra om samma handling på serverns tillstånd, inte
+  genom att skriva över. Se `skicka()` i `src/store.tsx`.
 
 ## Struktur
 

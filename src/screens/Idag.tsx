@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { useStore } from "../store";
+import { useStore, useLedare } from "../store";
 import { useSheet } from "../sheets/Sheets";
 import { Screen, Pad } from "../ui/Screen";
 import { Alert, Badge, Btn, Card, Empty, Row, Stats, T, Tel, Avatar, useT } from "../ui/kit";
@@ -36,7 +36,8 @@ function WeekStrip({ date, onPick }: { date: string; onPick: (d: string) => void
 }
 
 export function Idag() {
-  const { s, edit, say } = useStore();
+  const { s, edit, migId, session, nat } = useStore();
+  const ledare = useLedare();
   const open = useSheet();
   const [date, setDate] = useState(today());
   const js = jobsOn(s, date).slice().sort((a, b) => shortage(s, b) - shortage(s, a));
@@ -63,7 +64,8 @@ export function Idag() {
     <Screen
       title={date === today() ? "Idag" : nice(date)}
       subtitle={longDate(date) + " · vecka " + weekNo(date)}
-      right={<Btn title="Nytt jobb" kind="pri" onPress={() => open({ t: "job", date })} />}>
+      right={ledare ? <Btn title="Nytt jobb" kind="pri" onPress={() => open({ t: "job", date })} />
+        : <Badge>Du ser firmans plan</Badge>}>
       <WeekStrip date={date} onPick={setDate} />
       <Stats items={[
         { label: "Jobb", value: js.length, sub: js.length ? js.reduce((a, j) => a + j.need, 0) + " platser" : "" },
@@ -74,6 +76,14 @@ export function Idag() {
       ]} />
 
       <Pad>
+        {/* Utan kontakt fortsätter allt att fungera, men den som planerar ska
+            veta att de andra inte ser det än. */}
+        {session && nat === "offline" ? (
+          <Alert tone="warn">
+            <T k="strong" tone="warn">Ingen kontakt med firmans server</T>
+            <T k="sub">Det du ändrar sparas här och skickas när nätet är tillbaka.</T>
+          </Alert>
+        ) : null}
         {/* Luckorna först, med knappen bredvid. Det ska inte gå att läsa om
             problemet utan att se lösningen. */}
         {tot ? (
@@ -81,7 +91,7 @@ export function Idag() {
             {gaps.map((j, i) => {
               const kandidater = forslag(s, j);
               return (
-                <Row key={j.id} last={i === gaps.length - 1} right={fyllKnapp(j)}>
+                <Row key={j.id} last={i === gaps.length - 1} right={ledare ? fyllKnapp(j) : undefined}>
                   <T k="strong">{cname(s, j)}</T>
                   <T k="sub">{j.title} · saknas {shortage(s, j)}</T>
                   <T k="sub">
@@ -109,7 +119,7 @@ export function Idag() {
             const n = shortage(s, j);
             const c = s.customers.find(x => x.id === j.customerId);
             return (
-              <Row key={j.id} last={i === js.length - 1} onPress={() => open({ t: "job", id: j.id })}
+              <Row key={j.id} last={i === js.length - 1} onPress={ledare ? () => open({ t: "job", id: j.id }) : undefined}
                 right={n ? <Badge tone="crit">{"Saknas " + n}</Badge> : <Badge tone="ok">Bemannat</Badge>}>
                 <T k="strong">{cname(s, j)}</T>
                 <T k="sub">{j.title}{c?.address ? " · " + c.address : ""}</T>
@@ -126,7 +136,7 @@ export function Idag() {
               </Row>
             );
           }) : (
-            <Empty action={<Btn title="Boka in ett jobb" kind="pri" onPress={() => open({ t: "job", date })} />}>
+            <Empty action={ledare ? <Btn title="Boka in ett jobb" kind="pri" onPress={() => open({ t: "job", date })} /> : undefined}>
               Inga jobb den här dagen.
             </Empty>
           )}
@@ -137,8 +147,9 @@ export function Idag() {
             const away = out(p, date);
             const mine = jobsOf(s, p.id, date);
             return (
-              <Row key={p.id} last={i === s.people.length - 1} onPress={() => open({ t: "person", id: p.id })}
-                right={away
+              <Row key={p.id} last={i === s.people.length - 1}
+                onPress={ledare ? () => open({ t: "person", id: p.id }) : undefined}
+                right={!(ledare || p.id === migId) ? undefined : away
                   ? <Btn title="Tillbaka" onPress={() => edit(p.name + " är tillbaka", d => tillbaka(d, p.id))} />
                   : (
                     <View style={{ flexDirection: "row", gap: S.x1 }}>

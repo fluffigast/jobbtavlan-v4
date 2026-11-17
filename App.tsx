@@ -58,7 +58,7 @@ function Toast() {
 }
 
 function Tabs() {
-  const { s, ready } = useStore();
+  const { s, ready, roll } = useStore();
   const scheme = useColorScheme();
   const t = makeTheme(scheme);
   if (!ready) return <Loading />;
@@ -80,7 +80,9 @@ function Tabs() {
       })}>
       <Tab.Screen name="Idag" component={Idag} />
       <Tab.Screen name="Vecka" component={Vecka} />
-      <Tab.Screen name="Register" component={Register} />
+      {/* Kund- och personregistret är arbetsledarens. En snickare som tappar
+          telefonen ska inte tappa firmans kundlista med den. */}
+      {roll === "ledare" ? <Tab.Screen name="Register" component={Register} /> : null}
       <Tab.Screen name="Inkorg" component={Inkorg} />
       <Tab.Screen name="Skydd" component={Skydd} />
     </Tab.Navigator>

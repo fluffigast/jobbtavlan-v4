@@ -6,7 +6,11 @@
   "exclude": [
     "node_modules",
     "tests",
+    "server",
     ".test-build",
+    ".server-build",
+    "dist",
+    "scripts",
     "babel.config.js",
     "metro.config.js",
     "android",

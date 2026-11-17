@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { useStore } from "../store";
+import { useStore, useLedare } from "../store";
 import { useSheet } from "../sheets/Sheets";
 import { Screen, Pad } from "../ui/Screen";
 import { Avatar, Btn, Card, Empty, Row, T, useT } from "../ui/kit";
@@ -16,7 +16,8 @@ const NAMN = 96, DAG = 108, RAD = 60, HUVUD = 44;
    vara 108 px bred och rutnätet dras i sidled i stället. Namnkolumnen står
    stilla, annars tappar man vem raden gäller. */
 export function Vecka() {
-  const { s, edit } = useStore();
+  const { s, edit, migId } = useStore();
+  const ledare = useLedare();
   const open = useSheet();
   const t = useT();
   const [week, setWeek] = useState(monday(today()));
@@ -36,13 +37,16 @@ export function Vecka() {
     const kort = mina.find(j => shortage(s, j));
     const bg = borta ? t.c.hover : kort ? t.c.critBg : mina.length ? t.c.accent : "transparent";
     const fg = borta ? t.c.muted : kort ? t.c.crit : mina.length ? t.c.onAccent : t.c.muted;
+    const far = ledare || p.id === migId;
     const press = () => {
+      if (!far) return;
       if (borta) { open({ t: "absence", id: p.id, date: d }); return; }
+      if (!ledare) { open({ t: "absence", id: p.id, date: d }); return; }
       if (mina.length) open({ t: "job", id: mina[0].id });
       else open({ t: "give", pid: p.id, date: d });
     };
     return (
-      <Pressable key={d} onPress={press} accessibilityRole="button"
+      <Pressable key={d} onPress={press} disabled={!far} accessibilityRole="button"
         style={{ width: DAG - S.x2, height: RAD - S.x2, borderRadius: 8, borderWidth: 1, justifyContent: "center",
           paddingHorizontal: S.x2, marginRight: S.x2, marginBottom: S.x2,
           borderColor: mina.length || borta ? "transparent" : t.c.line,
@@ -119,7 +123,7 @@ export function Vecka() {
             const k = forslag(s, r.j);
             return (
               <Row key={r.j.id} last={i === brist.length - 1}
-                right={k.length === 1
+                right={!ledare ? undefined : k.length === 1
                   ? <Btn title={"Sätt in " + k[0].name} kind="pri" onPress={() => satt(r.j, k[0].id)} />
                   : k.length > 1
                     ? <Btn title="Välj ersättare" kind="pri" onPress={() => fyll(r.j)} />
