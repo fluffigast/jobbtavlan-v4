@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { State, Person, Job } from "../src/domain/types";
 import { add, today } from "../src/domain/dates";
 import {
-  out, shortage, onSite, free, jobsOf, jobsOn, nextBooked, who,
+  out, shortage, onSite, free, jobsOf, jobsOn, nextBooked, who, avsandare, telNyckel,
   certState, certIssues, secItems, secOpen, shortToday, cname, weekDays, isWeekend,
 } from "../src/domain/logic";
 
@@ -129,4 +129,28 @@ test("weekDays ger måndag till fredag, inga helgdagar", () => {
   assert.deepEqual(ds, ["2026-11-16", "2026-11-17", "2026-11-18", "2026-11-19", "2026-11-20"]);
   assert.equal(ds.some(isWeekend), false);
   assert.equal(isWeekend("2026-11-21"), true);
+});
+
+test("avsändaren känns igen som kund, personal eller okänd", () => {
+  const s = base([person("lina", { name: "Lina", phone: "070-555 01 02" })], []);
+  const kund = avsandare(s, "070-111 11 11");
+  assert.equal(kund.typ, "kund");
+  assert.equal(kund.typ === "kund" && kund.kund.id, "k1");
+
+  const personal = avsandare(s, "+46 70 555 01 02");
+  assert.equal(personal.typ, "person", "landsnummer ska inte göra personalen okänd");
+  assert.equal(personal.typ === "person" && personal.person.id, "lina");
+
+  assert.equal(avsandare(s, "070-999 99 99").typ, "okand");
+  assert.equal(avsandare(s, "").typ, "okand");
+});
+
+test("telNyckel jämför samma svenska nummer oavsett skrivsätt", () => {
+  const lika = ["070-555 01 02", "0705550102", "+46 70 555 01 02", "0046705550102", "+46705550102"];
+  const nycklar = new Set(lika.map(telNyckel));
+  assert.equal(nycklar.size, 1, "alla skrivsätt ger samma nyckel: " + [...nycklar].join(" / "));
+  assert.equal(telNyckel("070-555 01 02"), "0705550102");
+  assert.notEqual(telNyckel("070-555 01 02"), telNyckel("070-555 01 03"), "olika nummer blandas inte ihop");
+  assert.equal(telNyckel(""), "");
+  assert.equal(telNyckel("461234"), "461234", "kort nummer rörs inte");
 });

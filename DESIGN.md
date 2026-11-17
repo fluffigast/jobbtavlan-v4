@@ -147,3 +147,48 @@ jobb emellan.
 **Utan nät.** Allt fungerar vidare lokalt, och skärmen säger att de andra inte
 ser det än. Det är sämre än synk, men det är ärligt, och det är vad en telefon på
 ett tak faktiskt kan lova.
+
+## Idéer som bara var påbörjade, och vad som gjordes med dem
+
+Första omgången av v4 hade rätt skärmar men flera halva tankar. Det här är vad
+som fattades och hur de avslutades.
+
+**Kontot låg i en checklista.** Inloggning, synkstatus och återställning av
+demot låg under Skydd, bland punkter om lösenordshanterare och backup. Det är
+två olika frågor: "hur skyddar firman sig" och "vem är jag och var sparas det
+här". Nu finns en kontoknapp i huvudet på varje skärm, med en prick som är grå i
+demoläge, grön när allt är hos firman och gul när kontakten är borta. Frågan
+"sparas det här någonstans?" dyker upp där man råkar stå, inte i en flik man
+måste komma på att öppna.
+
+**Inkorgen var en lista att läsa.** Ett sms är sällan bara text. Det är en kund
+som vill boka, eller någon som inte kommer. Nu står handlingen i meddelandet:
+känt kundnummer ger "Boka in Familjen Lind", personalnummer ger "Sjukanmäl
+Jonas", okänt nummer ger "Lägg upp som kund". Appen vet redan vem numret
+tillhör, den gjorde bara ingenting med det.
+
+**Semesterdagarna var en siffra som ingen rörde.** Nu drar en inlagd semester
+sina vardagar, och arket säger vad det kostar innan man sparar. Tas semestern
+bort kommer dagarna tillbaka, och ändras den räknas den om i stället för att dras
+dubbelt. Uttaget sparas på frånvaron, inte som en gissning i efterhand. Går
+någon över sitt saldo visas ett minus, för en tyst nolla är en lögn som upptäcks
+vid löneköringen.
+
+**Intygen var märken att titta på.** Ett intyg som gått ut blev rött och sedan
+hände ingenting. Nu är märket en knapp som förnyar, med val på ett, två, tre
+eller fem år. Appen gissar inte giltighetstiden: ID06 är fem år, fallskydd ofta
+ett, och den som förnyar vet vilket.
+
+**Loggen visste inte vem.** Med inloggning finns ett namn, och då ska det stå
+där. Utan inloggning står det inget, för ett namn utan inloggning är en gissning.
+
+**Den inloggade såg firmans dag, inte sin egen.** En snickare som öppnar appen
+vill först veta var hen ska stå idag och med vem. Nu ligger "Din dag" överst när
+appen vet vem som håller i telefonen, med adress, kollega och ett tryck för att
+ringa kunden. För arbetsledaren ligger luckorna kvar överst, för det är den
+frågan som är hens.
+
+**En bugg som testet hittade.** Telefonen skickar nummer som +46 70 555 01 02,
+registret innehåller 070-555 01 02. Jämförelsen var tecken för tecken, så ett sms
+från en känd kund blev "okänt nummer". Det är nu översatt till en gemensam form
+för svenska nummer, med testet kvar som vakt.

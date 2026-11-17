@@ -6,7 +6,7 @@ import { Badge, Btn, Card, Choice, Empty, Field, Row, Segmented, T, Tel } from "
 import { useSheet } from "../sheets/Sheets";
 import { S } from "../theme";
 import { stamp, uid } from "../domain/dates";
-import { unread, who } from "../domain/logic";
+import { avsandare, unread, who } from "../domain/logic";
 
 /* Appen läser inte telefonens sms själv: iOS tillåter det inte alls, och på
    Android kräver det SMS-behörighet som Google bara släpper igenom för appar
@@ -56,10 +56,17 @@ export function Inkorg() {
                       : <Btn title="Klart" onPress={() => edit("Sms markerat som klart", d => { d.sms.find(x => x.id === m.id)!.done = true; })} />}>
                     {w ? <T k="strong">{w}</T> : <Badge tone="warn">Okänt nummer</Badge>}
                     <T k="sub">{m.text}</T>
+                    {/* Ett sms är sällan bara text. Det är en kund som vill boka,
+                        eller någon som inte kommer. Handlingen hör till meddelandet. */}
                     <View style={{ flexDirection: "row", gap: S.x2, alignItems: "center", flexWrap: "wrap" }}>
                       <T k="mono" style={{ opacity: 0.6 }}>{m.ts}</T>
                       <Tel phone={m.from} label={w ? "Ring tillbaka" : "Ring numret"} />
-                      {w ? null : <Btn title="Lägg upp som kund" onPress={() => open({ t: "cust", phone: m.from })} />}
+                      {(() => {
+                        const a = avsandare(s, m.from);
+                        if (a.typ === "kund") return <Btn title={"Boka in " + a.kund.name} onPress={() => open({ t: "job", cid: a.kund.id })} />;
+                        if (a.typ === "person") return <Btn title={"Sjukanmäl " + a.person.name} onPress={() => open({ t: "absence", id: a.person.id })} />;
+                        return <Btn title="Lägg upp som kund" onPress={() => open({ t: "cust", phone: m.from })} />;
+                      })()}
                     </View>
                   </Row>
                 );

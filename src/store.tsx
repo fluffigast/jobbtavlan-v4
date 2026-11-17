@@ -99,7 +99,7 @@ export function Store({ children }: { children: React.ReactNode }) {
         if (svar.typ === "krock") {
           const pa_nytt = kopia(svar.state);
           fn(pa_nytt);
-          pa_nytt.log = [{ ts: stamp(), text: msg }, ...(svar.state.log || [])].slice(0, 40);
+          pa_nytt.log = [{ ts: stamp(), text: msg, by: sess.namn }, ...(svar.state.log || [])].slice(0, 40);
           rev.current = svar.rev;
           setS(pa_nytt);
           sRef.current = pa_nytt;
@@ -137,7 +137,8 @@ export function Store({ children }: { children: React.ReactNode }) {
       fn(d);
       if (msg) {
         d.log = d.log || [];
-        d.log.unshift({ ts: stamp(), text: msg });
+        // Med inloggning vet vi vem. Utan den vore ett namn en gissning.
+        d.log.unshift({ ts: stamp(), text: msg, ...(session ? { by: session.namn } : {}) });
         d.log.length = Math.min(d.log.length, 40);
       }
       d.rev = Date.now();

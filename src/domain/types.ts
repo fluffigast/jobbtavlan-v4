@@ -1,4 +1,6 @@
-export type Away = { type: string; from: string; to: string | null } | null;
+/* dragna: hur många semesterdagar den här frånvaron drog. Sparas på frånvaron
+   så att en ändring eller borttagning lämnar tillbaka exakt det som togs. */
+export type Away = { type: string; from: string; to: string | null; dragna?: number } | null;
 export type Cert = { name: string; expires: string };
 export type Person = {
   id: string; name: string; phone: string; role?: string; since?: string;
@@ -12,7 +14,7 @@ export type Job = { id: string; date: string; customerId: string; title: string;
 export type Sms = { id: string; ts: string; from: string; text: string; done: boolean };
 export type Check = { id: string; text: string; done: boolean };
 export type Incident = { id: string; ts: string; who: string; text: string; done: boolean };
-export type LogEntry = { ts: string; text: string; by?: string };
+export type LogEntry = { ts: string; text: string; by?: string };   // by = vem, när någon är inloggad
 
 export type State = {
   rev: number; firm: string;

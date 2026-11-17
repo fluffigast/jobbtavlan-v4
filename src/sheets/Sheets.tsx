@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
-import { ScrollView, View, Pressable, Text } from "react-native";
+import { Platform, ScrollView, View, Pressable, Text } from "react-native";
 import { useStore } from "../store";
 import { useT, Sheet, Field, Choice, Check, Btn, T, Badge, Row, Empty } from "../ui/kit";
 import { S, F } from "../theme";
 import { add, monday, nice, today, uid, dayShort, dayNum } from "../domain/dates";
 import { C, P, cname, free, jobsOf, out, shortage, onSite } from "../domain/logic";
-import { forslag, tillsatt, tillsattText } from "../domain/actions";
+import { ROLLNAMN } from "../domain/roles";
+import { forslag, fornyaIntyg, omAr, sattFranvaro, taBortFranvaro, tillsatt, tillsattText, vardagar } from "../domain/actions";
 import { Job, Person, Customer } from "../domain/types";
 
 export type SheetSpec =
@@ -15,6 +16,8 @@ export type SheetSpec =
   | { t: "person"; id?: string }
   | { t: "replace"; id: string }
   | { t: "give"; pid: string; date: string }
+  | { t: "cert"; id: string; namn: string }
+  | { t: "konto" }
   | null;
 
 const Ctx = createContext<(s: SheetSpec) => void>(() => {});
@@ -93,6 +96,8 @@ function Body({ spec, close }: { spec: NonNullable<SheetSpec>; close: () => void
   if (spec.t === "cust") return <CustSheet spec={spec} close={close} />;
   if (spec.t === "person") return <PersonSheet spec={spec} close={close} />;
   if (spec.t === "replace") return <ReplaceSheet spec={spec} close={close} />;
+  if (spec.t === "cert") return <CertSheet spec={spec} close={close} />;
+  if (spec.t === "konto") return <KontoSheet close={close} />;
   return <GiveSheet spec={spec} close={close} />;
 }
 
@@ -173,7 +178,9 @@ function AbsenceSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, {
   const [to, setTo] = useState<string | null>(p.away?.to ?? null);
 
   const spara = (typ: string, f: string, tt: string | null, text: string) => {
-    edit(text, d => { P(d, spec.id)!.away = { type: typ, from: f, to: tt }; });
+    const dagar = typ === "Semester" && tt ? vardagar(f, tt) : 0;
+    edit(text + (dagar ? " · " + dagar + (dagar === 1 ? " dag" : " dagar") : ""),
+      d => sattFranvaro(d, spec.id, { type: typ, from: f, to: tt }));
     close();
   };
   const fredag = add(monday(spec.date || today()), 4);
@@ -196,7 +203,7 @@ function AbsenceSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, {
       footer={
         <>
           {p.away ? <Btn title="Ta bort frånvaro" kind="danger"
-            onPress={() => { edit(p.name + " är tillbaka", d => { P(d, spec.id)!.away = null; }); close(); }} /> : null}
+            onPress={() => { edit(p.name + " är tillbaka", d => taBortFranvaro(d, spec.id)); close(); }} /> : null}
           <Btn title="Spara" kind="pri" style={{ flex: 1 }}
             onPress={() => spara(type, from, to, p.name + ": " + type.toLowerCase() + " från " + nice(from))} />
         </>
@@ -207,6 +214,14 @@ function AbsenceSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, {
       <DateStrip value={from} onChange={d => setFrom(d || today())} />
       <Text style={{ color: th.c.muted, fontSize: F.xs, fontWeight: "600" }}>TILL OCH MED</Text>
       <DateStrip value={to} onChange={setTo} allowNone />
+      {type === "Semester" ? (
+        <T k="sub">
+          {to
+            ? vardagar(from, to) + " semesterdagar dras. " +
+              (p.vacLeft == null ? "" : "Kvar efter: " + (p.vacLeft + (p.away?.dragna || 0) - vardagar(from, to)) + ".")
+            : "Utan slutdatum dras inga dagar förrän du sätter ett."}
+        </T>
+      ) : null}
     </Sheet>
   );
 }
@@ -359,6 +374,101 @@ function GiveSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t:
           </Row>
         );
       }) : <Empty>Inga jobb den dagen.</Empty>}
+    </Sheet>
+  );
+}
+
+
+/* Ett intyg förnyas med ett nytt giltighetsdatum. Appen gissar inte hur länge
+   ett intyg gäller, för det skiljer sig åt: ID06 är fem år, heta arbeten fem,
+   fallskydd ofta ett. Den som förnyar vet, och får välja. */
+function CertSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t: "cert" }>; close: () => void }) {
+  const { s, edit } = useStore();
+  const p = P(s, spec.id)!;
+  const cert = (p.certs || []).find(c => c.name === spec.namn)!;
+  const utgick = cert.expires < today();
+  const [datum, setDatum] = useState(omAr(utgick ? today() : cert.expires, 1));
+
+  const spara = () => {
+    edit(p.name + ": " + cert.name + " giltigt till " + nice(datum), d => fornyaIntyg(d, p.id, cert.name, datum));
+    close();
+  };
+
+  return (
+    <Sheet open title={"Förnya " + cert.name} onClose={close}
+      footer={<Btn title="Spara" kind="pri" onPress={spara} style={{ flex: 1 }} />}>
+      <T k="sub">
+        {p.name} · {utgick ? "gick ut " + nice(cert.expires) : "giltigt till " + nice(cert.expires)}
+      </T>
+      <Choice label="Giltigt till" value={datum} onChange={setDatum} scroll
+        options={[1, 2, 3, 5].map(ar => ({
+          key: omAr(utgick ? today() : cert.expires, ar),
+          label: "+" + ar + (ar === 1 ? " år" : " år"),
+        }))} />
+      <T k="sub">Nytt datum: {nice(datum)}</T>
+    </Sheet>
+  );
+}
+
+
+/* Kontot: vem du är, var planen sparas, och vägen mellan demo och firmans
+   server. Det hörde aldrig hemma i en checklista över grundskydd. */
+function KontoSheet({ close }: { close: () => void }) {
+  const { session, nat, login, logout, reset, s } = useStore();
+  const th = useT();
+  const [bas, setBas] = useState(session?.bas || "http://localhost:8080");
+  const [namn, setNamn] = useState("");
+  const [pin, setPin] = useState("");
+  const [fel, setFel] = useState<string | null>(null);
+  const [vantar, setVantar] = useState(false);
+
+  if (session) {
+    const lage = nat === "synkat" ? "Allt du ändrar syns hos de andra"
+      : nat === "synkar" ? "Skickar…"
+      : "Ingen kontakt just nu. Ändringar ligger kvar här tills nätet är tillbaka.";
+    return (
+      <Sheet open title="Ditt konto" onClose={close}
+        footer={<Btn title="Logga ut" kind="danger" onPress={() => { logout(); close(); }} style={{ flex: 1 }} />}>
+        <T k="strong">{session.namn} · {ROLLNAMN[session.roll]}</T>
+        <Badge tone={nat === "offline" ? "warn" : "ok"}>{lage}</Badge>
+        <T k="sub">Planen ligger hos {session.bas}, och delas med alla som loggar in där.</T>
+        <T k="sub">
+          {session.roll === "ledare"
+            ? "Som arbetsledare ändrar du planen, kunderna och personalen."
+            : "Som snickare ser du planen, sjukanmäler dig själv och rapporterar skumma sms. Resten är arbetsledarens."}
+        </T>
+      </Sheet>
+    );
+  }
+
+  return (
+    <Sheet open title="Demoläge" onClose={close}
+      footer={
+        <Btn title={vantar ? "Loggar in…" : "Logga in"} kind="pri" disabled={vantar || !namn.trim() || !pin} style={{ flex: 1 }}
+          onPress={async () => {
+            setVantar(true); setFel(null);
+            const svar = await login(bas, namn, pin);
+            setVantar(false);
+            if (!svar.ok) setFel(svar.fel || "Kunde inte logga in.");
+            else close();
+          }} />
+      }>
+      <T k="strong">Planen ligger bara här</T>
+      <T k="sub">
+        Allt du ändrar sparas i den här {Platform.OS === "web" ? "webbläsaren" : "telefonen"} och syns inte för någon annan.
+        Innehållet är påhittat: {s.firm}.
+      </T>
+      <View style={{ height: 1, backgroundColor: th.c.line }} />
+      <T k="strong">Logga in på firmans plan</T>
+      <T k="sub">Då ser alla samma vecka, och din sjukanmälan når arbetsledaren utan ett samtal.</T>
+      <Field label="Serveradress" value={bas} onChange={setBas} placeholder="https://plan.firman.se" />
+      <View style={{ flexDirection: "row", gap: S.x3 }}>
+        <Field label="Ditt namn" value={namn} onChange={setNamn} placeholder="erik" />
+        <Field label="Pinkod" value={pin} onChange={setPin} keyboardType="number-pad" />
+      </View>
+      {fel ? <T tone="crit">{fel}</T> : null}
+      <View style={{ height: 1, backgroundColor: th.c.line }} />
+      <Btn title="Återställ demodata" onPress={() => { reset(); close(); }} />
     </Sheet>
   );
 }

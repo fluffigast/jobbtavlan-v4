@@ -84,6 +84,45 @@ export function Idag() {
             <T k="sub">Det du ändrar sparas här och skickas när nätet är tillbaka.</T>
           </Alert>
         ) : null}
+        {/* Den som är inloggad som sig själv vill först veta sin egen dag.
+            Arbetsledaren vill veta firmans. Därför ligger den här överst, men
+            bara när appen vet vem som håller i telefonen. */}
+        {migId ? (() => {
+          const jag = s.people.find(p => p.id === migId);
+          if (!jag) return null;
+          const mitt = jobsOf(s, jag.id, date);
+          const borta = out(jag, date);
+          return (
+            <Card title="Din dag">
+              {borta ? (
+                <Row right={<Btn title="Jag är tillbaka" onPress={() => edit(jag.name + " är tillbaka", d => tillbaka(d, jag.id))} />}>
+                  <T k="strong">{jag.away!.type}{jag.away!.to ? " t.o.m. " + nice(jag.away!.to) : " tills vidare"}</T>
+                  <T k="sub">Arbetsledaren ser det och kan sätta in någon annan.</T>
+                </Row>
+              ) : mitt.length ? mitt.map((j, i) => {
+                const c = s.customers.find(x => x.id === j.customerId);
+                return (
+                  <Row key={j.id} last={i === mitt.length - 1}>
+                    <T k="strong">{cname(s, j)}</T>
+                    <T k="sub">{j.title}{c?.address ? " · " + c.address : ""}</T>
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: S.x1, marginTop: 2 }}>
+                      {j.people.filter(id => id !== jag.id).map(id => {
+                        const kollega = s.people.find(x => x.id === id);
+                        return kollega ? <Badge key={id}>{"Med " + kollega.name}</Badge> : null;
+                      })}
+                    </View>
+                    {c?.phone ? <Tel phone={c.phone} label={"Ring " + (c.contact || c.name)} /> : null}
+                  </Row>
+                );
+              }) : (
+                <Row right={<Btn title="Sjukanmäl mig" onPress={() => edit(jag.name + " sjukanmäld från idag", d => sjukIdag(d, jag.id))} />}>
+                  <T k="strong">Inget inbokat på dig</T>
+                  <T k="sub">Hör av dig till arbetsledaren om du står utan jobb.</T>
+                </Row>
+              )}
+            </Card>
+          );
+        })() : null}
         {/* Luckorna först, med knappen bredvid. Det ska inte gå att läsa om
             problemet utan att se lösningen. */}
         {tot ? (

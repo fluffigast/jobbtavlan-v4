@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { TextInput, View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
 import { useStore } from "../store";
 import { useSheet } from "../sheets/Sheets";
 import { Screen, Pad } from "../ui/Screen";
 import { Avatar, Badge, Btn, Card, Empty, Row, Segmented, T, Tel, useT } from "../ui/kit";
 import { S, F } from "../theme";
-import { digits, nice, today } from "../domain/dates";
-import { certIssues, certState, cname, jobsOf, nextBooked, out } from "../domain/logic";
+import { nice, today } from "../domain/dates";
+import { certIssues, certState, cname, jobsOf, nextBooked, out, telNyckel } from "../domain/logic";
 
 /* Kunder och personal är två register. På en telefon är det en flik med
    två lägen, inte två flikar: flikraden har plats för fem, och Idag, Vecka,
@@ -21,8 +21,8 @@ export function Register() {
 
   const traff = (text: string, tel: string | undefined) => {
     if (!q.trim()) return true;
-    const n = digits(q);
-    return text.toLowerCase().includes(q.toLowerCase().trim()) || (!!n && digits(tel).includes(n));
+    const n = telNyckel(q);
+    return text.toLowerCase().includes(q.toLowerCase().trim()) || (!!n && telNyckel(tel).includes(n));
   };
   const kunder = s.customers
     .filter(c => traff(c.name + " " + (c.contact || "") + " " + (c.project || "") + " " + (c.address || ""), c.phone))
@@ -91,11 +91,20 @@ export function Register() {
                     {away ? <Badge tone="crit">{p.away!.type}</Badge>
                       : mine.length ? <Badge tone="ok">På jobb</Badge> : <Badge tone="warn">Ledig</Badge>}
                     {p.mfa ? null : <Badge tone="crit">Tvåsteg saknas</Badge>}
-                    {p.vacLeft != null ? <Badge>{p.vacLeft + " semesterdagar"}</Badge> : null}
+                    {p.vacLeft != null
+                      ? <Badge tone={p.vacLeft < 0 ? "crit" : "plain"}>
+                          {p.vacLeft < 0 ? Math.abs(p.vacLeft) + " dagar över" : p.vacLeft + " semesterdagar"}
+                        </Badge>
+                      : null}
+                    {/* Ett intyg som går ut är inget att bara titta på. Trycket förnyar det. */}
                     {(p.certs || []).map(c => {
                       const st = certState(c);
-                      return st === "ok" ? null
-                        : <Badge key={c.name} tone={st}>{c.name + (st === "crit" ? " gick ut " : " går ut ") + c.expires}</Badge>;
+                      if (st === "ok") return null;
+                      return (
+                        <Pressable key={c.name} onPress={() => open({ t: "cert", id: p.id, namn: c.name })}>
+                          <Badge tone={st}>{c.name + (st === "crit" ? " gick ut " : " går ut ") + c.expires + " · förnya"}</Badge>
+                        </Pressable>
+                      );
                     })}
                   </View>
                   <Tel phone={p.phone} label={"Ring " + p.name} />

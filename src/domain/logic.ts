@@ -3,6 +3,19 @@
 import { State, Person, Customer, Job } from "./types";
 import { add, digits, today, pd } from "./dates";
 
+/* Samma svenska nummer skrivs på flera sätt: 070-555 01 02, 0705550102 och
+   +46 70 555 01 02. Telefonen skickar det sista, registret innehåller det
+   första. Utan den här översättningen blir ett sms från en känd kund "okänt
+   nummer", vilket var precis vad som hände. Gäller svenska nummer; ett
+   utländskt nummer jämförs som det står. */
+export function telNyckel(num?: string): string {
+  let n = digits(num);
+  if (!n) return "";
+  if (n.startsWith("0046")) n = "0" + n.slice(4);
+  else if (n.startsWith("46") && n.length >= 10) n = "0" + n.slice(2);
+  return n;
+}
+
 export const P = (s: State, id: string) => s.people.find(p => p.id === id);
 export const C = (s: State, id: string) => s.customers.find(c => c.id === id);
 export const out = (p: Person | undefined, d: string) =>
@@ -18,13 +31,28 @@ export const nextBooked = (s: State, cid: string) => {
   return s.jobs.filter(j => j.customerId === cid && j.date >= t).map(j => j.date).sort()[0] || null;
 };
 export const who = (s: State, num: string) => {
-  const n = digits(num); if (!n) return null;
-  const c = s.customers.find(c => digits(c.phone) === n);
-  if (c) return c.name + (c.contact ? " (" + c.contact + ")" : "");
-  const p = s.people.find(p => digits(p.phone) === n);
-  return p ? p.name + " (personal)" : null;
+  const a = avsandare(s, num);
+  if (a.typ === "kund") return a.kund.name + (a.kund.contact ? " (" + a.kund.contact + ")" : "");
+  if (a.typ === "person") return a.person.name + " (personal)";
+  return null;
 };
 export const unread = (s: State) => s.sms.filter(m => !m.done);
+
+/* Vem numret tillhör, i en form som går att agera på. who() ger bara ett namn,
+   och ett namn går inte att boka in eller sjukanmäla. */
+export type Avsandare =
+  | { typ: "kund"; kund: Customer }
+  | { typ: "person"; person: Person }
+  | { typ: "okand" };
+export function avsandare(s: State, num: string): Avsandare {
+  const n = telNyckel(num);
+  if (!n) return { typ: "okand" };
+  const k = s.customers.find(c => telNyckel(c.phone) === n);
+  if (k) return { typ: "kund", kund: k };
+  const p = s.people.find(x => telNyckel(x.phone) === n);
+  if (p) return { typ: "person", person: p };
+  return { typ: "okand" };
+}
 export const certState = (c: { expires: string }): "ok" | "warn" | "crit" => {
   const t = today();
   return c.expires < t ? "crit" : c.expires <= add(t, 60) ? "warn" : "ok";

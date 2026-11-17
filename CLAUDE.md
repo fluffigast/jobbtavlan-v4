@@ -33,6 +33,9 @@ besluten bakom omskrivningen.
 
 ## Struktur
 
+- `src/domain/actions.ts` ändringar som flera skärmar gör likadant: tillsätta,
+  sjukanmäla, dra semesterdagar, förnya intyg. Lägg en ändring här så fort den
+  görs från mer än ett ställe, annars blir "nästan samma sak" på två ställen.
 - `src/domain/` logiken utan skärm: `dates.ts` och `logic.ts` är portade rakt av
   från v3:s `app.js`, samma funktionsnamn. `demo.json` är startdata, `demo.ts`
   skjuter den till innevarande vecka.
@@ -55,6 +58,10 @@ besluten bakom omskrivningen.
 - Ändra aldrig `S` direkt. Allt går genom `edit()`, annars sparas det inte och
   hamnar inte i händelselistan.
 - Lägg aldrig in riktiga person- eller kunduppgifter i `src/domain/demo.json`.
+- Telefonnummer jämförs alltid med `telNyckel()`, aldrig tecken för tecken.
+  Samma nummer skrivs på fem sätt och telefonen väljer sitt.
+- Semestersaldot ändras bara genom `sattFranvaro()` och `taBortFranvaro()`.
+  Räknar du dagar på egen hand någonstans blir saldot fel vid andra ändringen.
 - Demodata ska hålla sig till sin invariant: varje vardag i ankarveckan har jobb,
   saknar exakt en person och har exakt en ledig. Ändrar du `demo.json`, kör
   `npm test` och läs vad som brast innan du ändrar testet.
