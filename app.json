@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "Jobbtavlan",
+    "slug": "jobbtavlan",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "se.kvisttapp.jobbtavlan"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "se.kvisttapp.jobbtavlan"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single"
+    },
+    "scheme": "jobbtavlan",
+    "experiments": {
+      "baseUrl": "/jobbtavlan-v4"
+    }
+  }
+}

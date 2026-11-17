@@ -1,0 +1,586 @@
+{
+  "rev": 1,
+  "firm": "Kvist & Tapp Snickeri AB (påhittad demofirma)",
+  "people": [
+    {
+      "id": "erik",
+      "name": "Erik",
+      "phone": "070-555 01 01",
+      "away": null,
+      "role": "Arbetsledare, snickare",
+      "since": "2015",
+      "vacLeft": 12,
+      "mfa": true,
+      "certs": [
+        {
+          "name": "Fallskydd",
+          "expires": "2027-03-01"
+        },
+        {
+          "name": "Heta arbeten",
+          "expires": "2026-12-05"
+        },
+        {
+          "name": "ID06",
+          "expires": "2028-01-15"
+        }
+      ]
+    },
+    {
+      "id": "jonas",
+      "name": "Jonas",
+      "phone": "070-555 01 02",
+      "away": {
+        "type": "Sjuk",
+        "from": "2026-11-16",
+        "to": "2026-11-20"
+      },
+      "role": "Snickare",
+      "since": "2019",
+      "vacLeft": 8,
+      "mfa": false,
+      "certs": [
+        {
+          "name": "Fallskydd",
+          "expires": "2026-10-20"
+        },
+        {
+          "name": "ID06",
+          "expires": "2027-06-01"
+        }
+      ]
+    },
+    {
+      "id": "maria",
+      "name": "Maria",
+      "phone": "070-555 01 03",
+      "away": null,
+      "role": "Snickare",
+      "since": "2020",
+      "vacLeft": 15,
+      "mfa": true,
+      "certs": [
+        {
+          "name": "Fallskydd",
+          "expires": "2027-09-01"
+        },
+        {
+          "name": "Ställningsbyggnad",
+          "expires": "2027-02-10"
+        },
+        {
+          "name": "ID06",
+          "expires": "2027-10-01"
+        }
+      ]
+    },
+    {
+      "id": "ahmed",
+      "name": "Ahmed",
+      "phone": "070-555 01 04",
+      "away": null,
+      "role": "Lärling",
+      "since": "2025",
+      "vacLeft": 20,
+      "mfa": false,
+      "certs": [
+        {
+          "name": "ID06",
+          "expires": "2027-08-01"
+        }
+      ]
+    },
+    {
+      "id": "lina",
+      "name": "Lina",
+      "phone": "070-555 01 05",
+      "away": {
+        "type": "Semester",
+        "from": "2026-11-19",
+        "to": "2026-11-20"
+      },
+      "role": "Finsnickare",
+      "since": "2017",
+      "vacLeft": 5,
+      "mfa": true,
+      "certs": [
+        {
+          "name": "Heta arbeten",
+          "expires": "2027-05-01"
+        },
+        {
+          "name": "ID06",
+          "expires": "2026-12-20"
+        }
+      ]
+    },
+    {
+      "id": "oskar",
+      "name": "Oskar",
+      "phone": "070-555 01 06",
+      "away": null,
+      "role": "Snickare",
+      "since": "2022",
+      "vacLeft": 18,
+      "mfa": true,
+      "certs": [
+        {
+          "name": "Fallskydd",
+          "expires": "2027-04-01"
+        },
+        {
+          "name": "ID06",
+          "expires": "2027-11-01"
+        }
+      ]
+    }
+  ],
+  "customers": [
+    {
+      "id": "k1",
+      "name": "Villa Björkbacken",
+      "contact": "Anna",
+      "phone": "070-555 02 01",
+      "address": "Björkvägen 1",
+      "project": "Ny altan, 40 kvm",
+      "status": "Pågår"
+    },
+    {
+      "id": "k2",
+      "name": "BRF Granen",
+      "contact": "Bengt",
+      "phone": "070-555 02 02",
+      "address": "Granvägen 4",
+      "project": "Byta 12 fönster",
+      "status": "Pågår"
+    },
+    {
+      "id": "k3",
+      "name": "Tandkliniken Leendet",
+      "contact": "Cecilia",
+      "phone": "070-555 02 03",
+      "address": "Torget 2",
+      "project": "Receptionsdisk och skåp",
+      "status": "Pågår"
+    },
+    {
+      "id": "k4",
+      "name": "Familjen Ek",
+      "contact": "David",
+      "phone": "070-555 02 04",
+      "address": "Ekbacken 9",
+      "project": "Nytt kök",
+      "status": "Pågår"
+    },
+    {
+      "id": "k5",
+      "name": "Fjällstugan Rödkullen",
+      "contact": "Eva",
+      "phone": "070-555 02 05",
+      "address": "Rödkullevägen 3",
+      "project": "Bygga bastu",
+      "status": "Pågår"
+    },
+    {
+      "id": "k6",
+      "name": "Café Kardemumma",
+      "contact": "Fredrik",
+      "phone": "070-555 02 06",
+      "address": "Stationsgatan 7",
+      "project": "Platsbyggd sittbänk",
+      "status": "Pågår"
+    },
+    {
+      "id": "k7",
+      "name": "Villa Solsidan",
+      "contact": "Greta",
+      "phone": "070-555 02 07",
+      "address": "Solvägen 5",
+      "project": "Ny trappa",
+      "status": "Pågår"
+    },
+    {
+      "id": "k8",
+      "name": "Bygghandeln Hyveln",
+      "contact": "Hans",
+      "phone": "070-555 02 08",
+      "address": "Industrivägen 12",
+      "project": "Butiksinredning",
+      "status": "Pågår"
+    },
+    {
+      "id": "k9",
+      "name": "Familjen Lind",
+      "contact": "Ida",
+      "phone": "070-555 02 09",
+      "address": "Lindgatan 6",
+      "project": "Platsbyggda garderober",
+      "status": "Väntar"
+    },
+    {
+      "id": "k10",
+      "name": "Villa Tallåsen",
+      "contact": "Johan",
+      "phone": "070-555 02 10",
+      "address": "Tallvägen 8",
+      "project": "Friggebod",
+      "status": "Klart"
+    }
+  ],
+  "jobs": [
+    {
+      "id": "j1",
+      "date": "2026-11-23",
+      "customerId": "k1",
+      "title": "Gjuta plintar",
+      "need": 2,
+      "people": [
+        "erik",
+        "jonas",
+        "oskar"
+      ]
+    },
+    {
+      "id": "j2",
+      "date": "2026-11-23",
+      "customerId": "k2",
+      "title": "Riva gamla fönster",
+      "need": 2,
+      "people": [
+        "maria",
+        "ahmed"
+      ]
+    },
+    {
+      "id": "j3",
+      "date": "2026-11-23",
+      "customerId": "k3",
+      "title": "Mäta och riva gammal disk",
+      "need": 1,
+      "people": [
+        "lina"
+      ]
+    },
+    {
+      "id": "j4",
+      "date": "2026-11-24",
+      "customerId": "k1",
+      "title": "Bärlinor och reglar",
+      "need": 2,
+      "people": [
+        "erik",
+        "jonas"
+      ]
+    },
+    {
+      "id": "j5",
+      "date": "2026-11-24",
+      "customerId": "k2",
+      "title": "Montera nya fönster",
+      "need": 2,
+      "people": [
+        "maria",
+        "ahmed"
+      ]
+    },
+    {
+      "id": "j6",
+      "date": "2026-11-24",
+      "customerId": "k4",
+      "title": "Riva gammalt kök",
+      "need": 2,
+      "people": [
+        "lina",
+        "oskar"
+      ]
+    },
+    {
+      "id": "j7",
+      "date": "2026-11-25",
+      "customerId": "k4",
+      "title": "Montera köksstommar",
+      "need": 2,
+      "people": [
+        "lina",
+        "oskar"
+      ]
+    },
+    {
+      "id": "j8",
+      "date": "2026-11-25",
+      "customerId": "k3",
+      "title": "Montera receptionsdisk",
+      "need": 2,
+      "people": [
+        "erik",
+        "maria"
+      ]
+    },
+    {
+      "id": "j9",
+      "date": "2026-11-25",
+      "customerId": "k5",
+      "title": "Regla bastun",
+      "need": 1,
+      "people": [
+        "ahmed"
+      ]
+    },
+    {
+      "id": "j10",
+      "date": "2026-11-16",
+      "customerId": "k5",
+      "title": "Panel och lavar",
+      "need": 3,
+      "people": [
+        "maria",
+        "oskar"
+      ]
+    },
+    {
+      "id": "j11",
+      "date": "2026-11-16",
+      "customerId": "k6",
+      "title": "Bygga stomme till bänk",
+      "need": 1,
+      "people": [
+        "ahmed"
+      ]
+    },
+    {
+      "id": "j12",
+      "date": "2026-11-16",
+      "customerId": "k8",
+      "title": "Bygga hyllsystem",
+      "need": 1,
+      "people": [
+        "lina"
+      ]
+    },
+    {
+      "id": "j13",
+      "date": "2026-11-17",
+      "customerId": "k6",
+      "title": "Klä bänken",
+      "need": 3,
+      "people": [
+        "erik",
+        "oskar"
+      ]
+    },
+    {
+      "id": "j14",
+      "date": "2026-11-17",
+      "customerId": "k8",
+      "title": "Montera disk",
+      "need": 1,
+      "people": [
+        "ahmed"
+      ]
+    },
+    {
+      "id": "j15",
+      "date": "2026-11-17",
+      "customerId": "k1",
+      "title": "Lägga trall och räcke",
+      "need": 1,
+      "people": [
+        "lina"
+      ]
+    },
+    {
+      "id": "j16",
+      "date": "2026-11-18",
+      "customerId": "k2",
+      "title": "Foder och drevning",
+      "need": 3,
+      "people": [
+        "erik",
+        "oskar"
+      ]
+    },
+    {
+      "id": "j17",
+      "date": "2026-11-18",
+      "customerId": "k7",
+      "title": "Riva gammal trappa",
+      "need": 1,
+      "people": [
+        "maria"
+      ]
+    },
+    {
+      "id": "j18",
+      "date": "2026-11-18",
+      "customerId": "k3",
+      "title": "Montera skåp",
+      "need": 1,
+      "people": [
+        "lina"
+      ]
+    },
+    {
+      "id": "j19",
+      "date": "2026-11-19",
+      "customerId": "k7",
+      "title": "Montera ny trappa",
+      "need": 2,
+      "people": [
+        "erik"
+      ]
+    },
+    {
+      "id": "j20",
+      "date": "2026-11-19",
+      "customerId": "k4",
+      "title": "Bänkskiva och luckor",
+      "need": 1,
+      "people": [
+        "maria"
+      ]
+    },
+    {
+      "id": "j21",
+      "date": "2026-11-19",
+      "customerId": "k6",
+      "title": "Olja och montera",
+      "need": 1,
+      "people": [
+        "ahmed"
+      ]
+    },
+    {
+      "id": "j22",
+      "date": "2026-11-20",
+      "customerId": "k8",
+      "title": "Slutkontroll",
+      "need": 2,
+      "people": [
+        "maria"
+      ]
+    },
+    {
+      "id": "j23",
+      "date": "2026-11-20",
+      "customerId": "k5",
+      "title": "Dörr och lister",
+      "need": 1,
+      "people": [
+        "ahmed"
+      ]
+    },
+    {
+      "id": "j24",
+      "date": "2026-11-20",
+      "customerId": "k3",
+      "title": "Slutkontroll",
+      "need": 1,
+      "people": [
+        "oskar"
+      ]
+    }
+  ],
+  "sms": [
+    {
+      "id": "s1",
+      "ts": "2026-11-16 15:42",
+      "from": "070-555 02 04",
+      "text": "Köket blir toppen, tack för idag!",
+      "done": true
+    },
+    {
+      "id": "s2",
+      "ts": "2026-11-16 06:31",
+      "from": "070-555 01 02",
+      "text": "Är sjuk, feber. Kommer inte idag.",
+      "done": false
+    },
+    {
+      "id": "s3",
+      "ts": "2026-11-16 07:58",
+      "from": "070-555 02 09",
+      "text": "När kan ni börja med garderoberna?",
+      "done": false
+    },
+    {
+      "id": "s4",
+      "ts": "2026-11-16 08:15",
+      "from": "070-555 09 99",
+      "text": "Hej, vi behöver hjälp med ett tak. Ring mig.",
+      "done": false
+    }
+  ],
+  "security": [
+    {
+      "id": "c1",
+      "text": "Lösenordshanterare i stället för lappar och samma lösenord överallt",
+      "done": false
+    },
+    {
+      "id": "c2",
+      "text": "Alla har fått en genomgång av hur bluffmejl och bluff-sms ser ut",
+      "done": false
+    },
+    {
+      "id": "c3",
+      "text": "Rutin när någon slutar: konton stängs samma dag",
+      "done": false
+    },
+    {
+      "id": "c4",
+      "text": "Backup av ritningar och offerter, och återläsningen är testad",
+      "done": true
+    },
+    {
+      "id": "c5",
+      "text": "Skärmlås på alla jobbtelefoner",
+      "done": true
+    },
+    {
+      "id": "c6",
+      "text": "Automatiska uppdateringar på datorer och telefoner",
+      "done": true
+    },
+    {
+      "id": "c7",
+      "text": "Bara chefen har adminkonto",
+      "done": true
+    },
+    {
+      "id": "c8",
+      "text": "Routern på kontoret har eget lösenord, inte fabrikens",
+      "done": true
+    }
+  ],
+  "log": [
+    {
+      "ts": "2026-11-16 19:13",
+      "text": "Jobb ändrat: Villa Björkbacken, ons 11 nov"
+    },
+    {
+      "ts": "2026-11-16 19:13",
+      "text": "Oskar tillsatt på Villa Björkbacken, ons 11 nov"
+    },
+    {
+      "ts": "2026-11-16 06:40",
+      "text": "Jonas: sjuk från ons 11 nov"
+    },
+    {
+      "ts": "2026-11-16 16:10",
+      "text": "Lina: semester från tors 19 nov"
+    },
+    {
+      "ts": "2026-11-16 13:05",
+      "text": "Maria rapporterade: Fick sms om obetald faktura med en länk. Tryckte inte."
+    }
+  ],
+  "incidents": [
+    {
+      "id": "i1",
+      "ts": "2026-11-16 13:05",
+      "who": "Maria",
+      "text": "Fick sms om obetald faktura med en länk. Tryckte inte.",
+      "done": false
+    }
+  ]
+}
