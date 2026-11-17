@@ -7,23 +7,25 @@ import { Alert, Badge, Btn, Card, Empty, Row, Stats, T, Tel, Avatar, useT } from
 import { S, F } from "../theme";
 import { add, dayNum, dayShort, longDate, monday, nice, today, weekNo, workday } from "../domain/dates";
 import { cname, free, jobsOf, jobsOn, out, shortage, unread } from "../domain/logic";
+import { forslag, luckor, sjukIdag, tillbaka, tillsatt, tillsattText } from "../domain/actions";
+import { Job } from "../domain/types";
 
 function WeekStrip({ date, onPick }: { date: string; onPick: (d: string) => void }) {
   const t = useT(); const { s } = useStore();
-  const mon = monday(date);
-  const days = Array.from({ length: 7 }, (_, i) => add(mon, i));
+  const days = Array.from({ length: 7 }, (_, i) => add(monday(date), i));
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.x2, paddingHorizontal: S.x4 }}>
       {days.map(d => {
         const on = d === date, isToday = d === today();
         const n = jobsOn(s, d).reduce((a, j) => a + shortage(s, j), 0);
         return (
-          <Pressable key={d} onPress={() => onPick(d)}
+          <Pressable key={d} onPress={() => onPick(d)} accessibilityRole="button"
+            accessibilityLabel={nice(d) + (n ? ", saknar " + n : "")}
             style={{ width: 56, paddingVertical: S.x2, borderRadius: S.r, borderWidth: 1, alignItems: "center", gap: 2,
               borderColor: on ? t.c.accent : t.c.line, backgroundColor: on ? t.c.accent : t.c.surface }}>
             <Text style={{ color: on ? t.c.onAccent : t.c.muted, fontSize: F.xs }}>{dayShort(d)}</Text>
             <Text style={{ color: on ? t.c.onAccent : isToday ? t.c.accent : t.c.ink, fontSize: F.lg, fontWeight: "700" }}>{dayNum(d)}</Text>
-            <View style={{ height: 6, flexDirection: "row", gap: 3 }}>
+            <View style={{ height: 6 }}>
               {n ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: on ? t.c.onAccent : t.c.crit }} /> : null}
             </View>
           </Pressable>
@@ -34,15 +36,28 @@ function WeekStrip({ date, onPick }: { date: string; onPick: (d: string) => void
 }
 
 export function Idag() {
-  const { s, edit } = useStore();
+  const { s, edit, say } = useStore();
   const open = useSheet();
   const [date, setDate] = useState(today());
   const js = jobsOn(s, date).slice().sort((a, b) => shortage(s, b) - shortage(s, a));
-  const sh = js.filter(j => shortage(s, j));
-  const tot = sh.reduce((a, j) => a + shortage(s, j), 0);
+  const gaps = luckor(s, date);
+  const tot = gaps.reduce((a, j) => a + shortage(s, j), 0);
   const fr = free(s, date);
   const aw = s.people.filter(p => out(p, date));
   const un = unread(s);
+
+  const satt = (j: Job, pid: string) => edit(tillsattText(s, j.id, pid), d => tillsatt(d, j.id, pid));
+
+  /* Ett tryck när svaret är självklart, ett val när det inte är det.
+     Knappen säger vad som händer, inte vad den heter. */
+  const fyllKnapp = (j: Job) => {
+    const kandidater = forslag(s, j);
+    if (kandidater.length === 1)
+      return <Btn title={"Sätt in " + kandidater[0].name} kind="pri" onPress={() => satt(j, kandidater[0].id)} />;
+    if (kandidater.length > 1)
+      return <Btn title="Välj ersättare" kind="pri" onPress={() => open({ t: "replace", id: j.id })} />;
+    return <Btn title="Flytta jobbet" onPress={() => open({ t: "job", id: j.id })} />;
+  };
 
   return (
     <Screen
@@ -52,24 +67,41 @@ export function Idag() {
       <WeekStrip date={date} onPick={setDate} />
       <Stats items={[
         { label: "Jobb", value: js.length, sub: js.length ? js.reduce((a, j) => a + j.need, 0) + " platser" : "" },
-        { label: "Saknas", value: tot, tone: tot ? "crit" : undefined, sub: tot ? sh.map(j => cname(s, j)).join(", ") : "Fullt bemannat" },
+        { label: "Saknas", value: tot, tone: tot ? "crit" : undefined, sub: tot ? gaps.map(j => cname(s, j)).join(", ") : "Fullt bemannat" },
         { label: "Lediga", value: fr.length, sub: fr.map(p => p.name).join(", ") },
         { label: "Borta", value: aw.length, sub: aw.map(p => p.name).join(", ") },
         { label: "Olästa sms", value: un.length },
       ]} />
 
       <Pad>
+        {/* Luckorna först, med knappen bredvid. Det ska inte gå att läsa om
+            problemet utan att se lösningen. */}
         {tot ? (
-          <Alert tone="crit">
-            <T k="strong" tone="crit">{tot + (tot === 1 ? " person saknas" : " personer saknas")}</T>
-            <T k="sub">{"På " + sh.map(j => cname(s, j)).join(", ") + ". " +
-              (fr.length ? "Lediga: " + fr.map(p => p.name).join(", ") + "." : "Ingen är ledig, flytta ett jobb.")}</T>
-          </Alert>
+          <Card title={tot === 1 ? "En lucka att fylla" : tot + " luckor att fylla"}>
+            {gaps.map((j, i) => {
+              const kandidater = forslag(s, j);
+              return (
+                <Row key={j.id} last={i === gaps.length - 1} right={fyllKnapp(j)}>
+                  <T k="strong">{cname(s, j)}</T>
+                  <T k="sub">{j.title} · saknas {shortage(s, j)}</T>
+                  <T k="sub">
+                    {kandidater.length === 0
+                      ? "Ingen är ledig. Flytta jobbet eller sänk antalet."
+                      : kandidater.length === 1
+                        ? kandidater[0].name + " är ledig och har minst pass den här veckan."
+                        : "Lediga: " + kandidater.map(p => p.name).join(", ")}
+                  </T>
+                </Row>
+              );
+            })}
+          </Card>
         ) : fr.length && workday(date) && js.length ? (
           <Alert tone="warn">
             <T k="strong" tone="warn">Utan jobb: {fr.map(p => p.name).join(", ")}</T>
-            <T k="sub">Boka in en kund som väntar.</T>
+            <T k="sub">Boka in en kund som väntar, under Register.</T>
           </Alert>
+        ) : js.length ? (
+          <Alert tone="ok"><T k="strong" tone="ok">Allt bemannat</T><T k="sub">Inget kräver dig just nu.</T></Alert>
         ) : null}
 
         <Card title={"Jobb  " + js.length}>
@@ -78,13 +110,10 @@ export function Idag() {
             const c = s.customers.find(x => x.id === j.customerId);
             return (
               <Row key={j.id} last={i === js.length - 1} onPress={() => open({ t: "job", id: j.id })}
-                right={n
-                  ? <Btn title="Ersättare" kind="pri" onPress={() => open({ t: "replace", id: j.id })} />
-                  : <Badge tone="ok">Bemannat</Badge>}>
+                right={n ? <Badge tone="crit">{"Saknas " + n}</Badge> : <Badge tone="ok">Bemannat</Badge>}>
                 <T k="strong">{cname(s, j)}</T>
                 <T k="sub">{j.title}{c?.address ? " · " + c.address : ""}</T>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: S.x1, marginTop: 2 }}>
-                  {n ? <Badge tone="crit">{"Saknas " + n}</Badge> : null}
                   {j.people.map(id => {
                     const p = s.people.find(x => x.id === id);
                     if (!p) return null;
@@ -93,10 +122,14 @@ export function Idag() {
                       : <Badge key={id}>{p.name}</Badge>;
                   })}
                 </View>
-                {c?.phone ? <Tel phone={c.phone} /> : null}
+                {c?.phone ? <Tel phone={c.phone} label={"Ring " + (c.contact || c.name)} /> : null}
               </Row>
             );
-          }) : <Empty>Inga jobb inbokade den här dagen.</Empty>}
+          }) : (
+            <Empty action={<Btn title="Boka in ett jobb" kind="pri" onPress={() => open({ t: "job", date })} />}>
+              Inga jobb den här dagen.
+            </Empty>
+          )}
         </Card>
 
         <Card title={"Personal  " + s.people.length}>
@@ -104,15 +137,20 @@ export function Idag() {
             const away = out(p, date);
             const mine = jobsOf(s, p.id, date);
             return (
-              <Row key={p.id} last={i === s.people.length - 1}
+              <Row key={p.id} last={i === s.people.length - 1} onPress={() => open({ t: "person", id: p.id })}
                 right={away
-                  ? <Btn title="Tillbaka" onPress={() => edit(p.name + ": frånvaro borttagen", d => { d.people.find(x => x.id === p.id)!.away = null; })} />
-                  : <Btn title="Frånvaro" onPress={() => open({ t: "absence", id: p.id, date })} />}>
+                  ? <Btn title="Tillbaka" onPress={() => edit(p.name + " är tillbaka", d => tillbaka(d, p.id))} />
+                  : (
+                    <View style={{ flexDirection: "row", gap: S.x1 }}>
+                      <Btn title="Sjuk idag" onPress={() => edit(p.name + " sjukanmäld från idag", d => sjukIdag(d, p.id))} />
+                      <Btn title="···" onPress={() => open({ t: "absence", id: p.id, date })} />
+                    </View>
+                  )}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: S.x2 }}>
                   <Avatar name={p.name} />
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <T k="strong">{p.name}</T>
-                    {away ? <Badge tone="crit">{p.away!.type + (p.away!.to ? " t.o.m. " + nice(p.away!.to) : "")}</Badge>
+                    {away ? <Badge tone="crit">{p.away!.type + (p.away!.to ? " t.o.m. " + nice(p.away!.to) : " tills vidare")}</Badge>
                       : mine.length ? <T k="sub">{mine.map(j => cname(s, j)).join(", ")}</T>
                       : <Badge tone="warn">Ledig</Badge>}
                   </View>

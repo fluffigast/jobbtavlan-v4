@@ -5,7 +5,7 @@ import { useSheet } from "../sheets/Sheets";
 import { Screen, Pad } from "../ui/Screen";
 import { Avatar, Badge, Btn, Card, Empty, Row, Segmented, T, Tel, useT } from "../ui/kit";
 import { S, F } from "../theme";
-import { nice, today } from "../domain/dates";
+import { digits, nice, today } from "../domain/dates";
 import { certIssues, certState, cname, jobsOf, nextBooked, out } from "../domain/logic";
 
 /* Kunder och personal är två register. På en telefon är det en flik med
@@ -19,12 +19,17 @@ export function Register() {
   const [q, setQ] = useState("");
   const d = today();
 
+  const traff = (text: string, tel: string | undefined) => {
+    if (!q.trim()) return true;
+    const n = digits(q);
+    return text.toLowerCase().includes(q.toLowerCase().trim()) || (!!n && digits(tel).includes(n));
+  };
   const kunder = s.customers
-    .filter(c => !q || (c.name + " " + (c.contact || "") + " " + (c.project || "")).toLowerCase().includes(q.toLowerCase()))
+    .filter(c => traff(c.name + " " + (c.contact || "") + " " + (c.project || "") + " " + (c.address || ""), c.phone))
     .slice()
     .sort((a, b) => rank(a.status, nextBooked(s, a.id)) - rank(b.status, nextBooked(s, b.id)));
 
-  const personal = s.people.filter(p => !q || (p.name + " " + (p.role || "")).toLowerCase().includes(q.toLowerCase()));
+  const personal = s.people.filter(p => traff(p.name + " " + (p.role || ""), p.phone));
   const iss = certIssues(s);
   const notBooked = s.customers.filter(c => c.status !== "Klart" && !nextBooked(s, c.id)).length;
 
@@ -39,7 +44,8 @@ export function Register() {
       <Pad gap={S.x3}>
         <Segmented value={tab} onChange={setTab}
           options={[{ key: "kunder", label: "Kunder" }, { key: "personal", label: "Personal" }]} />
-        <TextInput value={q} onChangeText={setQ} placeholder="Sök" placeholderTextColor={t.c.muted}
+        <TextInput value={q} onChangeText={setQ} placeholder="Sök namn, uppdrag eller telefonnummer" placeholderTextColor={t.c.muted}
+          clearButtonMode="while-editing" returnKeyType="search"
           style={{ height: 44, borderWidth: 1, borderColor: t.c.line, borderRadius: S.r,
             paddingHorizontal: S.x3, backgroundColor: t.c.surface, color: t.c.ink, fontSize: F.md }} />
 
@@ -56,11 +62,13 @@ export function Register() {
                   <View style={{ flexDirection: "row", gap: S.x2, alignItems: "center", flexWrap: "wrap" }}>
                     {!done ? <Badge tone={c.status === "Väntar" ? "warn" : "plain"}>{c.status}</Badge> : null}
                     {done ? null : n ? <T k="sub">Nästa: {nice(n)}</T> : <Badge tone="crit">Inte inbokad</Badge>}
-                    <Tel phone={c.phone} />
                   </View>
+                  <Tel phone={c.phone} label={"Ring " + (c.contact || c.name)} />
                 </Row>
               );
-            }) : <Empty>Ingen kund matchar sökningen.</Empty>}
+            }) : <Empty action={<Btn title="Ny kund" kind="pri" onPress={() => open({ t: "cust" })} />}>
+                   Ingen kund matchar sökningen.
+                 </Empty>}
           </Card>
         ) : (
           <Card>
@@ -90,7 +98,7 @@ export function Register() {
                         : <Badge key={c.name} tone={st}>{c.name + (st === "crit" ? " gick ut " : " går ut ") + c.expires}</Badge>;
                     })}
                   </View>
-                  <Tel phone={p.phone} />
+                  <Tel phone={p.phone} label={"Ring " + p.name} />
                 </Row>
               );
             }) : <Empty>Ingen person matchar sökningen.</Empty>}

@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { useStore } from "../store";
 import { Screen, Pad } from "../ui/Screen";
 import { Badge, Btn, Card, Choice, Empty, Field, Row, Segmented, T, Tel } from "../ui/kit";
+import { useSheet } from "../sheets/Sheets";
 import { S } from "../theme";
 import { stamp, uid } from "../domain/dates";
 import { unread, who } from "../domain/logic";
@@ -12,6 +13,7 @@ import { unread, who } from "../domain/logic";
    vars huvudsyfte är meddelanden. Därför skrivs de in för hand, som i v3. */
 export function Inkorg() {
   const { s, edit } = useStore();
+  const open = useSheet();
   const [tab, setTab] = useState("sms");
   const [from, setFrom] = useState("");
   const [text, setText] = useState("");
@@ -54,13 +56,14 @@ export function Inkorg() {
                       : <Btn title="Klart" onPress={() => edit("Sms markerat som klart", d => { d.sms.find(x => x.id === m.id)!.done = true; })} />}>
                     {w ? <T k="strong">{w}</T> : <Badge tone="warn">Okänt nummer</Badge>}
                     <T k="sub">{m.text}</T>
-                    <View style={{ flexDirection: "row", gap: S.x2, alignItems: "center" }}>
+                    <View style={{ flexDirection: "row", gap: S.x2, alignItems: "center", flexWrap: "wrap" }}>
                       <T k="mono" style={{ opacity: 0.6 }}>{m.ts}</T>
-                      <Tel phone={m.from} />
+                      <Tel phone={m.from} label={w ? "Ring tillbaka" : "Ring numret"} />
+                      {w ? null : <Btn title="Lägg upp som kund" onPress={() => open({ t: "cust", phone: m.from })} />}
                     </View>
                   </Row>
                 );
-              }) : <Empty>Inga sms inlagda.</Empty>}
+              }) : <Empty>Inga sms inlagda. Skriv in det du fått i formuläret ovanför.</Empty>}
             </Card>
           </>
         ) : (
@@ -89,7 +92,7 @@ export function Inkorg() {
                   <T k="sub">{i.text}</T>
                   <T k="mono" style={{ opacity: 0.6 }}>{i.ts}</T>
                 </Row>
-              )) : <Empty>Inget rapporterat.</Empty>}
+              )) : <Empty>Inget rapporterat. Det är ett gott tecken, men påminn gärna om att det är bättre att fråga en gång för mycket.</Empty>}
             </Card>
           </>
         )}

@@ -102,12 +102,22 @@ export function T({ children, k = "body", tone, style }:
   return <Text style={[base, { color: col }, style]}>{children}</Text>;
 }
 
-export function Tel({ phone }: { phone?: string }) {
+/* Ett nummer är till för att ringas. Med label blir träffytan en knapp som
+   säger vem som rings, inte en sifferrad man får sikta på. */
+export function Tel({ phone, label }: { phone?: string; label?: string }) {
   const t = useT();
   if (!phone) return null;
-  return (
-    <Pressable onPress={() => Linking.openURL("tel:" + phone.replace(/[^\d+]/g, ""))} hitSlop={8}>
+  const ring = () => Linking.openURL("tel:" + phone.replace(/[^\d+]/g, ""));
+  if (!label) return (
+    <Pressable onPress={ring} hitSlop={8} accessibilityRole="link" accessibilityLabel={"Ring " + phone}>
       <Text style={{ color: t.c.accent, fontSize: F.sm, fontVariant: ["tabular-nums"] }}>{phone}</Text>
+    </Pressable>
+  );
+  return (
+    <Pressable onPress={ring} accessibilityRole="button" accessibilityLabel={label + ", " + phone}
+      style={({ pressed }) => [st.telBtn, { borderColor: t.c.line, backgroundColor: pressed ? t.c.hover : "transparent" }]}>
+      <Text numberOfLines={1} style={{ color: t.c.accent, fontSize: F.sm, fontWeight: "600" }}>{label}</Text>
+      <Text numberOfLines={1} style={{ color: t.c.muted, fontSize: F.xs, fontVariant: ["tabular-nums"] }}>{phone}</Text>
     </Pressable>
   );
 }
@@ -253,9 +263,15 @@ export function Check({ label, value, onChange }: { label: string; value: boolea
   );
 }
 
-export function Empty({ children }: { children: string }) {
+/* En tom lista ska säga vad man gör åt saken, inte bara att den är tom. */
+export function Empty({ children, action }: { children: string; action?: React.ReactNode }) {
   const t = useT();
-  return <Text style={{ color: t.c.muted, fontSize: F.md, padding: S.x4 }}>{children}</Text>;
+  return (
+    <View style={{ padding: S.x4, gap: S.x3, alignItems: "flex-start" }}>
+      <Text style={{ color: t.c.muted, fontSize: F.md }}>{children}</Text>
+      {action}
+    </View>
+  );
 }
 
 export function Loading() {
@@ -283,6 +299,7 @@ const st = StyleSheet.create({
   sheetFoot: { flexDirection: "row", gap: S.x2, padding: S.x4, borderTopWidth: 1 },
   input: { borderWidth: 1, borderRadius: S.r, paddingHorizontal: S.x3, fontSize: F.md },
   chip: { minHeight: S.tap, paddingHorizontal: S.x4, borderRadius: S.r, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  telBtn: { alignSelf: "flex-start", maxWidth: "100%", minHeight: 40, justifyContent: "center", paddingHorizontal: S.x3, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
   check: { flexDirection: "row", alignItems: "center", gap: S.x3, minHeight: S.tap, paddingHorizontal: S.x3, borderRadius: S.r, borderWidth: 1 },
   box: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
 });

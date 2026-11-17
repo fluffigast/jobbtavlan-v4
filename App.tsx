@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Platform, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer, DefaultTheme, DarkTheme } from "@react-navigation/native";
@@ -15,6 +15,7 @@ import { Inkorg } from "./src/screens/Inkorg";
 import { Skydd } from "./src/screens/Skydd";
 import { makeTheme, S, F } from "./src/theme";
 import { Loading } from "./src/ui/kit";
+import { WebShell } from "./src/ui/WebShell";
 import { secOpen, shortToday, unread } from "./src/domain/logic";
 
 const Tab = createBottomTabNavigator();
@@ -24,22 +25,34 @@ const ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   Inkorg: "chatbox-ellipses-outline", Skydd: "shield-checkmark-outline",
 };
 
-/* Liten pratbubbla längst ned: v3:s toast, flyttad ovanför flikraden. */
+/* Pratbubblan längst ned bär också ångra-knappen: den som råkade trycka fel
+   ska inte behöva leta reda på vad som ändrades. */
 function Toast() {
-  const { toast, clearToast } = useStore();
+  const { toast, clearToast, undo } = useStore();
   const t = makeTheme(useColorScheme());
   useEffect(() => {
     if (!toast) return;
-    const id = setTimeout(clearToast, 2600);
+    const id = setTimeout(clearToast, toast.undo ? 5000 : 2600);
     return () => clearTimeout(id);
   }, [toast, clearToast]);
   if (!toast) return null;
   return (
-    <View pointerEvents="none" style={{ position: "absolute", left: S.x4, right: S.x4, bottom: 92, alignItems: "center" }}>
-      <Text numberOfLines={2} style={{
-        backgroundColor: t.c.ink, color: t.c.surface, fontSize: F.sm,
-        paddingHorizontal: S.x4, paddingVertical: S.x2, borderRadius: S.r, overflow: "hidden",
-      }}>{toast}</Text>
+    <View style={{ position: "absolute", left: S.x4, right: S.x4, bottom: 96, alignItems: "center" }}>
+      <View style={{
+        flexDirection: "row", alignItems: "center", gap: S.x3, maxWidth: 520,
+        backgroundColor: t.c.ink, borderRadius: S.r, paddingLeft: S.x4,
+        paddingRight: toast.undo ? S.x1 : S.x4, paddingVertical: toast.undo ? 4 : S.x2,
+      }}>
+        <Text numberOfLines={2} style={{ color: t.c.surface, fontSize: F.sm, flexShrink: 1 }}>{toast.text}</Text>
+        {toast.undo ? (
+          <Pressable onPress={() => { undo(); }} hitSlop={8}
+            style={({ pressed }) => ({ paddingHorizontal: S.x3, paddingVertical: S.x2, opacity: pressed ? 0.6 : 1 })}>
+            <Text style={{ color: t.c.accent === "#1B5E96" ? "#9FD0FF" : t.c.accent, fontSize: F.sm, fontWeight: "700" }}>
+              Ångra
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -85,11 +98,13 @@ export default function App() {
     <SafeAreaProvider>
       <Store>
         <SheetHost>
-          <NavigationContainer theme={navTheme as any}>
-            <Tabs />
-            <Toast />
-            <StatusBar style={scheme === "dark" ? "light" : "dark"} />
-          </NavigationContainer>
+          <WebShell>
+            <NavigationContainer theme={navTheme as any}>
+              <Tabs />
+              <Toast />
+              <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+            </NavigationContainer>
+          </WebShell>
         </SheetHost>
       </Store>
     </SafeAreaProvider>
