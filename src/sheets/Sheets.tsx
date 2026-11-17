@@ -3,7 +3,7 @@ import { Platform, ScrollView, View, Pressable, Text } from "react-native";
 import { useStore } from "../store";
 import { useT, Sheet, Field, Choice, Check, Btn, T, Badge, Row, Empty } from "../ui/kit";
 import { S, F } from "../theme";
-import { add, monday, nice, today, uid, dayShort, dayNum } from "../domain/dates";
+import { add, monday, nice, niceAr, today, uid, dayShort, dayNum } from "../domain/dates";
 import { C, P, cname, free, jobsOf, out, shortage, onSite } from "../domain/logic";
 import { ROLLNAMN } from "../domain/roles";
 import { forslag, fornyaIntyg, omAr, sattFranvaro, taBortFranvaro, tillsatt, tillsattText, vardagar } from "../domain/actions";
@@ -390,7 +390,7 @@ function CertSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t:
   const [datum, setDatum] = useState(omAr(utgick ? today() : cert.expires, 1));
 
   const spara = () => {
-    edit(p.name + ": " + cert.name + " giltigt till " + nice(datum), d => fornyaIntyg(d, p.id, cert.name, datum));
+    edit(p.name + ": " + cert.name + " giltigt till " + niceAr(datum), d => fornyaIntyg(d, p.id, cert.name, datum));
     close();
   };
 
@@ -398,14 +398,14 @@ function CertSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t:
     <Sheet open title={"Förnya " + cert.name} onClose={close}
       footer={<Btn title="Spara" kind="pri" onPress={spara} style={{ flex: 1 }} />}>
       <T k="sub">
-        {p.name} · {utgick ? "gick ut " + nice(cert.expires) : "giltigt till " + nice(cert.expires)}
+        {p.name} · {utgick ? "gick ut " + niceAr(cert.expires) : "giltigt till " + niceAr(cert.expires)}
       </T>
       <Choice label="Giltigt till" value={datum} onChange={setDatum} scroll
         options={[1, 2, 3, 5].map(ar => ({
           key: omAr(utgick ? today() : cert.expires, ar),
           label: "+" + ar + (ar === 1 ? " år" : " år"),
         }))} />
-      <T k="sub">Nytt datum: {nice(datum)}</T>
+      <T k="sub">Nytt datum: {niceAr(datum)}</T>
     </Sheet>
   );
 }

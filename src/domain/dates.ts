@@ -13,6 +13,12 @@ export const monday = (s: string) => add(s, -((pd(s).getDay() + 6) % 7));
 export const nice = (s: string) => { const d = pd(s); return DAYS[d.getDay()] + " " + d.getDate() + " " + MON[d.getMonth()]; };
 export const dayShort = (s: string) => DAYS[pd(s).getDay()];
 export const dayNum = (s: string) => String(pd(s).getDate());
+/* "fre 5 dec" duger för den här veckan. Ett intyg som går ut om fem år måste
+   visa årtalet, annars ser förnyelsen ut att gälla till i december. */
+export const niceAr = (s: string) => {
+  const d = pd(s);
+  return nice(s) + (d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : "");
+};
 export const longDate = (s: string) => { const d = pd(s); return DAYL[d.getDay()] + " " + d.getDate() + " " + MONL[d.getMonth()] + " " + d.getFullYear(); };
 export const weekNo = (s: string) => {
   const d = pd(s); d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
