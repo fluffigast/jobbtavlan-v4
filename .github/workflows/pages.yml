@@ -1,0 +1,52 @@
+name: Publicera webbdemo
+
+# Bygger webbversionen och lägger den på GitHub Pages vid varje push till main.
+# Sätt variabeln PAGES_DOMAIN i repots inställningar för att köra på egen
+# (under)domän i stället för på projektsidans /jobbtavlan-v4.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  bygg:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Tester
+        run: npm test
+      - name: Bygg webb
+        run: |
+          if [ -n "${{ vars.PAGES_DOMAIN }}" ]; then
+            node scripts/build-web.mjs --domain "${{ vars.PAGES_DOMAIN }}"
+          else
+            node scripts/build-web.mjs --base "/${{ github.event.repository.name }}"
+          fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  publicera:
+    needs: bygg
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
