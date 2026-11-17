@@ -5,14 +5,14 @@ import { Screen, Pad } from "../ui/Screen";
 import { Badge, Btn, Card, Choice, Empty, Field, Row, Segmented, T, Tel } from "../ui/kit";
 import { useSheet } from "../sheets/Sheets";
 import { S } from "../theme";
-import { stamp, uid } from "../domain/dates";
+import { uid } from "../domain/dates";
 import { avsandare, unread, who } from "../domain/logic";
 
 /* Appen läser inte telefonens sms själv: iOS tillåter det inte alls, och på
    Android kräver det SMS-behörighet som Google bara släpper igenom för appar
    vars huvudsyfte är meddelanden. Därför skrivs de in för hand, som i v3. */
 export function Inkorg() {
-  const { s, edit } = useStore();
+  const { s, kor } = useStore();
   const open = useSheet();
   const [tab, setTab] = useState("sms");
   const [from, setFrom] = useState("");
@@ -40,9 +40,7 @@ export function Inkorg() {
                 <Field label="Meddelande" value={text} onChange={setText} multiline />
                 <Btn title="Lägg till" kind="pri" disabled={!from.trim() || !text.trim()}
                   onPress={() => {
-                    edit("Sms inlagt från " + from, d => {
-                      d.sms.push({ id: uid(), ts: stamp(), from: from.trim(), text: text.trim(), done: false });
-                    });
+                    kor({ typ: "sms-ny", id: uid(), from: from.trim(), text: text.trim() });
                     setFrom(""); setText("");
                   }} />
               </View>
@@ -53,7 +51,7 @@ export function Inkorg() {
                 return (
                   <Row key={m.id} last={i === sms.length - 1}
                     right={m.done ? <Badge tone="ok">Klart</Badge>
-                      : <Btn title="Klart" onPress={() => edit("Sms markerat som klart", d => { d.sms.find(x => x.id === m.id)!.done = true; })} />}>
+                      : <Btn title="Klart" onPress={() => kor({ typ: "sms-klart", id: m.id, done: true })} />}>
                     {w ? <T k="strong">{w}</T> : <Badge tone="warn">Okänt nummer</Badge>}
                     <T k="sub">{m.text}</T>
                     {/* Ett sms är sällan bara text. Det är en kund som vill boka,
@@ -83,9 +81,7 @@ export function Inkorg() {
                   placeholder="Sms om obetald faktura med länk" />
                 <Btn title="Rapportera" kind="pri" disabled={!incText.trim()}
                   onPress={() => {
-                    edit(incWho + " rapporterade: " + incText.trim(), d => {
-                      d.incidents.push({ id: uid(), ts: stamp(), who: incWho, text: incText.trim(), done: false });
-                    });
+                    kor({ typ: "rapport-ny", id: uid(), text: incText.trim(), who: incWho });
                     setIncText("");
                   }} />
               </View>
@@ -94,7 +90,7 @@ export function Inkorg() {
               {inc.length ? inc.map((i, n) => (
                 <Row key={i.id} last={n === inc.length - 1}
                   right={i.done ? <Badge tone="ok">Hanterat</Badge>
-                    : <Btn title="Hanterat" onPress={() => edit("Rapport markerad som hanterad", d => { d.incidents.find(x => x.id === i.id)!.done = true; })} />}>
+                    : <Btn title="Hanterat" onPress={() => kor({ typ: "rapport-klar", id: i.id, done: true })} />}>
                   <T k="strong">{i.who}</T>
                   <T k="sub">{i.text}</T>
                   <T k="mono" style={{ opacity: 0.6 }}>{i.ts}</T>

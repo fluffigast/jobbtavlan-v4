@@ -18,18 +18,32 @@ besluten bakom omskrivningen.
 - `npx expo start` startar Metro, `a` öppnar på Android, `i` på iOS.
 - `npx expo export --platform ios` paketerar utan att starta, bra när ingen
   simulator finns installerad.
-- `npm run server` startar den delade planen lokalt. `npm run server:konto`
-  lägger upp en inloggning.
+- `npm run server` startar den delade planen lokalt på loopback.
+  `npm run server:konto` lägger upp en inloggning.
 
 ## Delad plan
 
+- `src/domain/ops.ts` är hjärtat: handlingarna, vad de gör (`tillampa`), vem som
+  får göra dem (`farGora`), vad som hamnar i loggen (`beskriv`), hur de ångras
+  (`invers`) och hur något som kommer utifrån tolkas (`tolka`).
+- `src/domain/projektion.ts` vad varje roll får läsa.
 - `server/` egen liten server utan beroenden: `store.ts` (en JSON-fil, skriven
-  helt eller inte alls), `main.ts` (http och sessioner), `konto.ts` (inloggningar).
+  helt eller inte alls), `main.ts` (http, sessioner, spärr), `konto.ts`.
 - `src/sync.ts` klientsidan. Allt får misslyckas utan att appen gör det.
-- `src/domain/roles.ts` reglerna för vem som får ändra vad. Appen gömmer, servern
-  avgör. Ändra aldrig reglerna bara på ena sidan.
 - Krockar löses genom att göra om samma handling på serverns tillstånd, inte
-  genom att skriva över. Se `skicka()` i `src/store.tsx`.
+  genom att skriva över. Se `upp()` i `src/store.tsx`.
+
+### Regler som inte får tummas på
+
+- **Servern tar aldrig emot ett tillstånd.** En gång gjorde den det, och då gick
+  det att skicka med ett påhittat semesteruttag, skriva om händelseloggen och
+  lägga in ett sms i någon annans namn. Lägg till en handling i stället.
+- **Allt utifrån går genom `tolka()`.** Okända nycklar är inte extra, de är ett
+  försök. Lägg till fältet i tolken eller låt bli att skicka det.
+- **Det klienten påstår om sig själv gäller inte.** Tid, avsändare, vem som
+  rapporterade och vad som dras från semestersaldot sätts av mottagaren.
+- **Att gömma något i appen är ingen spärr.** Skär bort det i `projektion.ts`
+  också, annars ligger det i svaret ändå.
 
 ## Struktur
 

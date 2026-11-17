@@ -9,6 +9,10 @@ import { Roll } from "../src/domain/roles";
 export type Konto = { personId: string; roll: Roll; salt: string; hash: string };
 export type Data = { rev: number; state: State; konton: Record<string, Konto> };
 
+/* Startläget på en server: demoplanen, men med tom händelselista. Historiken
+   ska börja när firman börjar, inte med rader som ingen känner igen. */
+export const startState = (demo: () => State): (() => State) => () => ({ ...demo(), log: [] });
+
 export function hashaPin(pin: string, salt = crypto.randomBytes(16).toString("hex")) {
   const hash = crypto.scryptSync(pin, salt, 32).toString("hex");
   return { salt, hash };
@@ -54,6 +58,11 @@ export class Store {
   }
 
   konto(namn: string) { return this.data.konton[namn.toLowerCase()]; }
+
+  /* Ett konto som aldrig stämmer, att jämföra mot när namnet inte finns.
+     Hashas en gång vid start så att inloggningen tar lika lång tid oavsett. */
+  private attrapp: Konto = { personId: "", roll: "snickare", ...hashaPin(crypto.randomBytes(24).toString("hex")) };
+  attrappKonto() { return this.attrapp; }
   sattKonto(namn: string, personId: string, roll: Roll, pin: string) {
     this.data.konton[namn.toLowerCase()] = { personId, roll, ...hashaPin(pin) };
     this.skriv();

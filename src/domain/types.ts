@@ -11,9 +11,9 @@ export type Customer = {
   address?: string; project?: string; status: "Pågår" | "Väntar" | "Klart" | string;
 };
 export type Job = { id: string; date: string; customerId: string; title: string; need: number; people: string[] };
-export type Sms = { id: string; ts: string; from: string; text: string; done: boolean };
+export type Sms = { id: string; ts: string; from: string; text: string; done: boolean; av?: string };   // av = vem som la in det
 export type Check = { id: string; text: string; done: boolean };
-export type Incident = { id: string; ts: string; who: string; text: string; done: boolean };
+export type Incident = { id: string; ts: string; who: string; text: string; done: boolean; av?: string };
 export type LogEntry = { ts: string; text: string; by?: string };   // by = vem, när någon är inloggad
 
 export type State = {

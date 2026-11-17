@@ -7,7 +7,7 @@ import { S, F } from "../theme";
 import { secItems } from "../domain/logic";
 
 export function Skydd() {
-  const { s, edit } = useStore();
+  const { s, kor } = useStore();
   const ledare = useLedare();
   const t = useT();
   const items = secItems(s).slice().sort((a, b) => Number(a.done) - Number(b.done));
@@ -31,8 +31,7 @@ export function Skydd() {
             <Row key={i.id} last={n === items.length - 1}
               right={i.auto ? <Badge>Räknas av sig själv</Badge>
                 : ledare ? <Btn title={i.done ? "Ångra" : "Klart"}
-                    onPress={() => edit("Grundskydd " + (i.done ? "öppnat igen" : "klart") + ": " + i.text,
-                      d => { const x = d.security.find(y => y.id === i.id)!; x.done = !x.done; })} />
+                    onPress={() => kor({ typ: "grundskydd", id: i.id, done: !i.done })} />
                 : null}>
               {i.done ? <Badge tone="ok">Klart</Badge> : <Badge tone="crit">Öppen</Badge>}
               <T>{i.text}</T>

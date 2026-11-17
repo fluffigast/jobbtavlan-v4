@@ -6,7 +6,8 @@ import { S, F } from "../theme";
 import { add, monday, nice, niceAr, today, uid, dayShort, dayNum } from "../domain/dates";
 import { C, P, cname, free, jobsOf, out, shortage, onSite } from "../domain/logic";
 import { ROLLNAMN } from "../domain/roles";
-import { forslag, fornyaIntyg, omAr, sattFranvaro, taBortFranvaro, tillsatt, tillsattText, vardagar } from "../domain/actions";
+import { BYGGE } from "../bygge";
+import { forslag, medInsatt, omAr, vardagar } from "../domain/actions";
 import { Job, Person, Customer } from "../domain/types";
 
 export type SheetSpec =
@@ -102,7 +103,7 @@ function Body({ spec, close }: { spec: NonNullable<SheetSpec>; close: () => void
 }
 
 function JobSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t: "job" }>; close: () => void }) {
-  const { s, edit } = useStore();
+  const { s, kor } = useStore();
   const thJob = useT();
   const existing = spec.id ? s.jobs.find(j => j.id === spec.id) : undefined;
   const [date, setDate] = useState(existing?.date || spec.date || today());
@@ -118,18 +119,12 @@ function JobSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t: 
 
   const save = () => {
     if (!cid || !title.trim()) return;
-    const o = { date, customerId: cid, title: title.trim(), need, people };
-    const name = (C(s, cid) || ({} as Customer)).name || "Okänd kund";
-    edit((spec.id ? "Jobb ändrat: " : "Nytt jobb: ") + name + ", " + nice(date), d => {
-      if (spec.id) Object.assign(d.jobs.find(j => j.id === spec.id)!, o);
-      else d.jobs.push({ id: uid(), ...o });
-    });
+    const jobb = { date, customerId: cid, title: title.trim(), need, people };
+    kor(spec.id ? { typ: "jobb-andra", id: spec.id, jobb } : { typ: "jobb-ny", id: uid(), jobb });
     close();
   };
   const del = () => {
-    edit("Jobb borttaget: " + (existing ? cname(s, existing) : "") + ", " + nice(date), d => {
-      d.jobs = d.jobs.filter(j => j.id !== spec.id);
-    });
+    if (spec.id) kor({ typ: "jobb-bort", id: spec.id });
     close();
   };
 
@@ -170,17 +165,15 @@ function JobSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t: 
 }
 
 function AbsenceSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t: "absence" }>; close: () => void }) {
-  const { s, edit } = useStore();
+  const { s, kor } = useStore();
   const th = useT();
   const p = P(s, spec.id)!;
   const [type, setType] = useState(p.away?.type || "Sjuk");
   const [from, setFrom] = useState(p.away?.from || spec.date || today());
   const [to, setTo] = useState<string | null>(p.away?.to ?? null);
 
-  const spara = (typ: string, f: string, tt: string | null, text: string) => {
-    const dagar = typ === "Semester" && tt ? vardagar(f, tt) : 0;
-    edit(text + (dagar ? " · " + dagar + (dagar === 1 ? " dag" : " dagar") : ""),
-      d => sattFranvaro(d, spec.id, { type: typ, from: f, to: tt }));
+  const spara = (typ: string, f: string, tt: string | null) => {
+    kor({ typ: "franvaro", personId: spec.id, away: { type: typ, from: f, to: tt } });
     close();
   };
   const fredag = add(monday(spec.date || today()), 4);
@@ -190,11 +183,11 @@ function AbsenceSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, {
     <View style={{ gap: S.x2 }}>
       <Text style={{ color: th.c.muted, fontSize: F.xs, fontWeight: "600" }}>VANLIGAST</Text>
       <Btn title="Sjuk idag, tills vidare" kind="pri"
-        onPress={() => spara("Sjuk", today(), null, p.name + " sjukanmäld från idag")} />
+        onPress={() => spara("Sjuk", today(), null)} />
       <Btn title={"Sjuk resten av veckan, t.o.m. " + nice(fredag)}
-        onPress={() => spara("Sjuk", today(), fredag, p.name + " sjuk t.o.m. " + nice(fredag))} />
+        onPress={() => spara("Sjuk", today(), fredag)} />
       <Btn title="VAB idag, tills vidare"
-        onPress={() => spara("VAB", today(), null, p.name + " vabbar från idag")} />
+        onPress={() => spara("VAB", today(), null)} />
     </View>
   );
 
@@ -203,9 +196,8 @@ function AbsenceSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, {
       footer={
         <>
           {p.away ? <Btn title="Ta bort frånvaro" kind="danger"
-            onPress={() => { edit(p.name + " är tillbaka", d => taBortFranvaro(d, spec.id)); close(); }} /> : null}
-          <Btn title="Spara" kind="pri" style={{ flex: 1 }}
-            onPress={() => spara(type, from, to, p.name + ": " + type.toLowerCase() + " från " + nice(from))} />
+            onPress={() => { kor({ typ: "franvaro-bort", personId: spec.id }); close(); }} /> : null}
+          <Btn title="Spara" kind="pri" style={{ flex: 1 }} onPress={() => spara(type, from, to)} />
         </>
       }>
       {snabb}
@@ -227,7 +219,7 @@ function AbsenceSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, {
 }
 
 function CustSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t: "cust" }>; close: () => void }) {
-  const { s, edit } = useStore();
+  const { s, kor } = useStore();
   const k = spec.id ? C(s, spec.id)! : null;
   const [name, setName] = useState(k?.name || "");
   const [contact, setContact] = useState(k?.contact || "");
@@ -237,11 +229,8 @@ function CustSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t:
   const [status, setStatus] = useState(k?.status || "Pågår");
   const save = () => {
     if (!name.trim()) return;
-    const o = { name: name.trim(), contact, phone, address, project, status };
-    edit((spec.id ? "Kund ändrad: " : "Ny kund: ") + o.name, d => {
-      if (spec.id) Object.assign(C(d, spec.id)!, o);
-      else d.customers.push({ id: uid(), ...o });
-    });
+    const kund = { name: name.trim(), contact, phone, address, project, status };
+    kor(spec.id ? { typ: "kund-andra", id: spec.id, kund } : { typ: "kund-ny", id: uid(), kund });
     close();
   };
   return (
@@ -261,7 +250,7 @@ function CustSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t:
 }
 
 function PersonSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t: "person" }>; close: () => void }) {
-  const { s, edit } = useStore();
+  const { s, kor } = useStore();
   const r = spec.id ? P(s, spec.id)! : null;
   const [name, setName] = useState(r?.name || "");
   const [phone, setPhone] = useState(r?.phone || "");
@@ -271,24 +260,19 @@ function PersonSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { 
   const [certs, setCerts] = useState((r?.certs || []).map(c => c.name + ", " + c.expires).join("\n"));
   const save = () => {
     if (!name.trim()) return;
-    const o = {
-      name: name.trim(), phone, role, vacLeft: vac === "" ? null : Number(vac), mfa,
+    const person = {
+      name: name.trim(), phone, role, since: r?.since || "",
+      vacLeft: vac === "" ? null : Number(vac), mfa,
       certs: certs.split("\n").map(l => {
         const m = l.match(/^(.+?),\s*(\d{4}-\d{2}-\d{2})\s*$/);
         return m ? { name: m[1].trim(), expires: m[2] } : null;
       }).filter(Boolean) as { name: string; expires: string }[],
     };
-    edit((spec.id ? "Person ändrad: " : "Ny person: ") + o.name, d => {
-      if (spec.id) Object.assign(P(d, spec.id)!, o);
-      else d.people.push({ id: uid(), away: null, ...o } as Person);
-    });
+    kor(spec.id ? { typ: "person-andra", id: spec.id, person } : { typ: "person-ny", id: uid(), person });
     close();
   };
   const del = () => {
-    edit("Person borttagen: " + (r?.name || ""), d => {
-      d.people = d.people.filter(p => p.id !== spec.id);
-      d.jobs.forEach(j => { j.people = j.people.filter(i => i !== spec.id); });
-    });
+    if (spec.id) kor({ typ: "person-bort", id: spec.id });
     close();
   };
   return (
@@ -312,21 +296,21 @@ function PersonSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { 
 }
 
 function ReplaceSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t: "replace" }>; close: () => void }) {
-  const { s, edit } = useStore();
+  const { s, kor } = useStore();
   const open2 = useSheet();
   const j = s.jobs.find(x => x.id === spec.id)!;
   const kandidater = forslag(s, j);
   const pass = (pid: string) => s.jobs.filter(x => x.people.indexOf(pid) >= 0).length;
 
   const satt = (pid: string) => {
-    edit(tillsattText(s, j.id, pid), d => tillsatt(d, j.id, pid));
+    kor({ typ: "bemanning", jobbId: j.id, personer: medInsatt(s, j, pid) });
     close();
   };
   const sank = () => {
-    edit("Antalet sänkt på " + cname(s, j) + ", " + nice(j.date), d => {
-      const job = d.jobs.find(x => x.id === j.id)!;
-      job.need = Math.max(1, onSite(d, job).length);
-    });
+    kor({ typ: "jobb-andra", id: j.id, jobb: {
+      date: j.date, customerId: j.customerId, title: j.title,
+      need: Math.max(1, onSite(s, j).length), people: j.people,
+    } });
     close();
   };
 
@@ -353,12 +337,12 @@ function ReplaceSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, {
 }
 
 function GiveSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t: "give" }>; close: () => void }) {
-  const { s, edit } = useStore();
+  const { s, kor } = useStore();
   const open2 = useSheet();
   const p = P(s, spec.pid)!;
   const js = s.jobs.filter(j => j.date === spec.date).sort((a, b) => shortage(s, b) - shortage(s, a));
   const assign = (j: Job) => {
-    edit(tillsattText(s, j.id, p.id), d => tillsatt(d, j.id, p.id));
+    kor({ typ: "bemanning", jobbId: j.id, personer: medInsatt(s, j, p.id) });
     close();
   };
   return (
@@ -383,14 +367,14 @@ function GiveSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t:
    ett intyg gäller, för det skiljer sig åt: ID06 är fem år, heta arbeten fem,
    fallskydd ofta ett. Den som förnyar vet, och får välja. */
 function CertSheet({ spec, close }: { spec: Extract<NonNullable<SheetSpec>, { t: "cert" }>; close: () => void }) {
-  const { s, edit } = useStore();
+  const { s, kor } = useStore();
   const p = P(s, spec.id)!;
   const cert = (p.certs || []).find(c => c.name === spec.namn)!;
   const utgick = cert.expires < today();
   const [datum, setDatum] = useState(omAr(utgick ? today() : cert.expires, 1));
 
   const spara = () => {
-    edit(p.name + ": " + cert.name + " giltigt till " + niceAr(datum), d => fornyaIntyg(d, p.id, cert.name, datum));
+    kor({ typ: "intyg", personId: p.id, namn: cert.name, expires: datum });
     close();
   };
 
@@ -432,6 +416,7 @@ function KontoSheet({ close }: { close: () => void }) {
         <T k="strong">{session.namn} · {ROLLNAMN[session.roll]}</T>
         <Badge tone={nat === "offline" ? "warn" : "ok"}>{lage}</Badge>
         <T k="sub">Planen ligger hos {session.bas}, och delas med alla som loggar in där.</T>
+        <Bygge />
         <T k="sub">
           {session.roll === "ledare"
             ? "Som arbetsledare ändrar du planen, kunderna och personalen."
@@ -469,6 +454,15 @@ function KontoSheet({ close }: { close: () => void }) {
       {fel ? <T tone="crit">{fel}</T> : null}
       <View style={{ height: 1, backgroundColor: th.c.line }} />
       <Btn title="Återställ demodata" onPress={() => { reset(); close(); }} />
+      <Bygge />
     </Sheet>
   );
+}
+
+
+/* Vilken commit den här sidan är byggd från. Utan den går ett publicerat bygge
+   inte att para ihop med källkoden utan att ta någons ord för det. */
+function Bygge() {
+  if (!BYGGE.tid) return null;
+  return <T k="sub">Bygge {BYGGE.commit} · {BYGGE.tid}</T>;
 }

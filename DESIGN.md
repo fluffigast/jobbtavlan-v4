@@ -192,3 +192,58 @@ frågan som är hens.
 registret innehåller 070-555 01 02. Jämförelsen var tecken för tecken, så ett sms
 från en känd kund blev "okänt nummer". Det är nu översatt till en gemensam form
 för svenska nummer, med testet kvar som vakt.
+## Granskningen, och varför hela skrivvägen byggdes om
+
+En genomgång av servern hittade fem hål och körde dem, inte bara läste koden.
+En snickare kunde skicka med ett påhittat semesteruttag, skriva om
+händelseloggen, smyga in okända fält, lägga in ett sms i en kollegas namn och
+läsa hela kundregistret med kollegornas intyg och semestersaldon. Dessutom fanns
+ingen spärr mot att gissa pinkoder, och svarstiden avslöjade vilka namn som
+fanns.
+
+Jag körde alla fem själv innan jag rörde något. De stämde.
+
+**Felet var inte fem buggar, utan en modell.** Servern tog emot hela planen från
+klienten och jämförde den med den gamla för att räkna ut vad som ändrats. En
+sådan jämförelse måste vara fullständig för att hålla, och min var det inte: den
+tittade varken på loggen eller på fält den inte kände igen, och den kunde inte
+veta om ett värde som `dragna` var räknat eller påhittat. Att laga hålen ett i
+taget hade gett en jämförelse med fem lappar på, och nästa lapp hade behövts
+nästa vecka.
+
+Nu skickar klienten en handling: "sätt in Maria på j1", "sjukanmäl mig från
+idag". Servern räknar själv ut allt som följer av den, inklusive semesteruttag,
+tidsstämplar, vem som skrev och vad som hamnar i händelselistan. Det klienten
+påstår om resultatet finns inte med i samtalet. Allt som kommer utifrån tolkas
+fält för fält, och det som inte står i protokollet avvisas i stället för att
+ignoreras.
+
+Tre följder är värda att nämna.
+
+**Ångra blev bättre av det.** Förut var ångra ett sparat tillstånd som lades
+tillbaka. Nu räknas motsatsen ut som en vanlig handling, som servern prövar mot
+samma regler. En snickare kan alltså ångra sin egen sjukanmälan men inte ångra
+sig in i någon annans.
+
+**Demoläget blev ärligare.** Samma reducerare kör lokalt utan server, så demot
+beter sig som en firma med server i stället för att vara en egen kodväg som
+råkar se likadan ut.
+
+**Att gömma i appen räknas inte.** Kundregistret var dolt för en snickare i
+gränssnittet, men `/api/state` skickade det ändå. Svaret skärs nu efter roll på
+servern. Snickaren ser planen, vilka som är med och vem som är borta, för det
+behövs för att veta var man ska stå. Hen ser inte kollegornas intyg,
+semestersaldon, telefonnummer, inkorgen eller händelselistan.
+
+Spärren mot gissning sitter på både namnet och adressen, fem fel kostar en
+kvart, och nyckelfunktionen körs även när namnet inte finns så att svarstiden
+inte skvallrar. Pinkoder kräver sex tecken: fyra siffror går att beta av även
+med spärr, om man har tålamod.
+
+Servern binder numera loopback. Ska den nås utifrån måste man säga det
+uttryckligen, och då står det i klartext i uppstarten att den talar ren http och
+hör hemma bakom en proxy som sköter TLS.
+
+**Det som fortfarande inte är gjort** innan den får betjäna riktiga personer:
+TLS, säkerhetskopior, utgallring av gamla rapporter och sms, och ett beslut om
+var datafilen får ligga. Det står här i stället för att vara halvbyggt.

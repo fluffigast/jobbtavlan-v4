@@ -2,6 +2,7 @@
    telefonen är på ett tak, och täckningen är vad den är. */
 import { State } from "./domain/types";
 import { Roll } from "./domain/roles";
+import { Op } from "./domain/ops";
 
 export type Session = { bas: string; token: string; roll: Roll; personId: string; namn: string };
 export type Hamtat = { rev: number; state: State };
@@ -48,25 +49,29 @@ export async function hamta(s: Session): Promise<Hamtat | null> {
 }
 
 export type Skrivsvar =
-  | { typ: "ok"; rev: number }
+  | { typ: "ok"; rev: number; state: State }
   | { typ: "krock"; rev: number; state: State }
-  | { typ: "nekat"; nekade: string[] }
+  | { typ: "nekat" }
+  | { typ: "obegriplig" }
   | { typ: "utloggad" }
   | { typ: "offline" };
 
-export async function skriv(s: Session, rev: number, state: State): Promise<Skrivsvar> {
+/* Skickar en handling, inte en plan. Servern svarar med planen som den blev,
+   skuren efter vad rollen får se. */
+export async function skicka(s: Session, rev: number, op: Op): Promise<Skrivsvar> {
   try {
-    const r = await anrop(s.bas + "/api/state", {
-      method: "PUT",
+    const r = await anrop(s.bas + "/api/op", {
+      method: "POST",
       headers: { ...JSON_HUVUD, authorization: "Bearer " + s.token },
-      body: JSON.stringify({ rev, state }),
+      body: JSON.stringify({ rev, op }),
     });
     if (r.status === 401) return { typ: "utloggad" };
     const b = await r.json().catch(() => ({}));
     if (r.status === 409) return { typ: "krock", rev: b.rev, state: b.state };
-    if (r.status === 403) return { typ: "nekat", nekade: b.nekade || [] };
+    if (r.status === 403) return { typ: "nekat" };
+    if (r.status === 400) return { typ: "obegriplig" };
     if (!r.ok) return { typ: "offline" };
-    return { typ: "ok", rev: b.rev };
+    return { typ: "ok", rev: b.rev, state: b.state };
   } catch { return { typ: "offline" }; }
 }
 

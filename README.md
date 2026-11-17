@@ -15,9 +15,10 @@ på en riktig telefon. Ändringar sparas lokalt på enheten.
 
 ## Status
 
-32 tester över datumräkning, bemanningsregler och demodata, körda med Node:s
-egen testkörare (`npm test`). De testar de riktiga modulerna, inget är ersatt
-med attrapper.
+74 tester över datumräkning, bemanningsregler, demodata, handlingarna och
+servern, körda med Node:s egen testkörare (`npm test`). De testar de riktiga
+modulerna och riktig http, inget är ersatt med attrapper. Fem av dem är de hål
+en granskning hittade i den första servern, och de ligger kvar som vakt.
 
 Den delade planen är provad med två inloggade klienter mot en riktig server:
 arbetsledaren fyller en lucka, och snickarens skärm räknar om sig utan att någon
@@ -33,15 +34,34 @@ simulatorkörtid. Inget i koden är Android-specifikt, men iOS är alltså oprö
 Utan server ligger planen i telefonen. Med server ser hela firman samma plan,
 och sjukanmälan når arbetsledaren utan ett telefonsamtal.
 
-    npm run server                                      # port 8080, data i .data/
+    npm run server                                      # 127.0.0.1:8080, data i .data/
     npm run server:konto -- erik erik ledare <pinkod>   # arbetsledare
     npm run server:konto -- jonas jonas snickare <pinkod>
 
-Logga sedan in i appen under Skydd, med serveradressen, ditt namn och pinkoden.
-Pinkoderna lagras hashade i datafilen. Skriv dem aldrig i repot.
+Logga sedan in i appen under kontoknappen, med serveradressen, ditt namn och
+pinkoden. Pinkoderna lagras hashade. Skriv dem aldrig i repot eller i ett
+kommando som hamnar i skalets historik.
 
 Två roller: arbetsledaren ändrar planen, snickaren ser den, sjukanmäler sig själv
 och rapporterar skumma sms. Servern avgör, inte appen.
+
+### Innan den möter internet
+
+Servern är skriven för en firma, inte för att stå naken på nätet. Som den står:
+
+- **Binder loopback.** `VARD=0.0.0.0` krävs för att nås utifrån, och då ska den
+  stå bakom en omvänd proxy som sköter TLS. Servern själv talar ren http.
+- **Inga webbläsare utifrån** förrän `ORIGIN=https://din.sida` är satt.
+- **Pinkoder minst sex tecken**, hashade med scrypt, jämförda i konstant tid.
+- **Fem fel i rad spärrar** namnet och adressen i en kvart.
+- **Tar emot handlingar, inte tillstånd.** Klienten kan be om "sätt in Maria på
+  j1"; den kan inte påstå hur planen ser ut efteråt. Allt som följer av en
+  handling räknas ut på servern.
+- **Svaret skärs efter roll.** En snickare får inte kundregistret, kollegornas
+  intyg, semestersaldon, inkorgen eller händelselistan.
+
+Det som återstår innan den kan betjäna riktiga personuppgifter: TLS på riktigt,
+säkerhetskopior, utgallring, och ett beslut om var datafilen får ligga.
 
 ## Webbversion och publicering
 
@@ -59,4 +79,6 @@ Pages vid varje push till `main`. För att koppla en egen underdomän:
 2. Peka underdomänen med en CNAME till `<konto>.github.io` hos din DNS-leverantör.
 3. Kör om arbetsflödet. Bygget skriver CNAME-filen och lägger bunten i roten.
 
-Repot är ännu inte skapat på GitHub, så ingenting är publicerat.
+Webbdemot ligger på https://fluffigast.github.io/jobbtavlan-v4/ och byggs av
+arbetsflödet vid varje push. Vilken commit en publicerad sida kommer från står
+under kontoknappen, så att sidan går att para ihop med källkoden.

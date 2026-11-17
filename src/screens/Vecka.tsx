@@ -7,7 +7,7 @@ import { Avatar, Btn, Card, Empty, Row, T, useT } from "../ui/kit";
 import { S, F } from "../theme";
 import { add, dayNum, dayShort, monday, nice, today, weekNo } from "../domain/dates";
 import { cname, jobsOf, jobsOn, out, shortage, weekDays } from "../domain/logic";
-import { forslag, tillsatt, tillsattText } from "../domain/actions";
+import { forslag, medInsatt } from "../domain/actions";
 import { Job } from "../domain/types";
 
 const NAMN = 96, DAG = 108, RAD = 60, HUVUD = 44;
@@ -16,14 +16,14 @@ const NAMN = 96, DAG = 108, RAD = 60, HUVUD = 44;
    vara 108 px bred och rutnätet dras i sidled i stället. Namnkolumnen står
    stilla, annars tappar man vem raden gäller. */
 export function Vecka() {
-  const { s, edit, migId } = useStore();
+  const { s, kor, migId } = useStore();
   const ledare = useLedare();
   const open = useSheet();
   const t = useT();
   const [week, setWeek] = useState(monday(today()));
   const ds = weekDays(week);
 
-  const satt = (j: Job, pid: string) => edit(tillsattText(s, j.id, pid), d => tillsatt(d, j.id, pid));
+  const satt = (j: Job, pid: string) => kor({ typ: "bemanning", jobbId: j.id, personer: medInsatt(s, j, pid) });
   const fyll = (j: Job) => {
     const k = forslag(s, j);
     if (k.length === 1) satt(j, k[0].id);

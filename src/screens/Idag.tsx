@@ -7,7 +7,7 @@ import { Alert, Badge, Btn, Card, Empty, Row, Stats, T, Tel, Avatar, useT } from
 import { S, F } from "../theme";
 import { add, dayNum, dayShort, longDate, monday, nice, today, weekNo, workday } from "../domain/dates";
 import { cname, free, jobsOf, jobsOn, out, shortage, unread } from "../domain/logic";
-import { forslag, luckor, sjukIdag, tillbaka, tillsatt, tillsattText } from "../domain/actions";
+import { forslag, luckor, medInsatt } from "../domain/actions";
 import { Job } from "../domain/types";
 
 function WeekStrip({ date, onPick }: { date: string; onPick: (d: string) => void }) {
@@ -36,7 +36,7 @@ function WeekStrip({ date, onPick }: { date: string; onPick: (d: string) => void
 }
 
 export function Idag() {
-  const { s, edit, migId, session, nat } = useStore();
+  const { s, kor, migId, session, nat } = useStore();
   const ledare = useLedare();
   const open = useSheet();
   const [date, setDate] = useState(today());
@@ -47,7 +47,7 @@ export function Idag() {
   const aw = s.people.filter(p => out(p, date));
   const un = unread(s);
 
-  const satt = (j: Job, pid: string) => edit(tillsattText(s, j.id, pid), d => tillsatt(d, j.id, pid));
+  const satt = (j: Job, pid: string) => kor({ typ: "bemanning", jobbId: j.id, personer: medInsatt(s, j, pid) });
 
   /* Ett tryck när svaret är självklart, ett val när det inte är det.
      Knappen säger vad som händer, inte vad den heter. */
@@ -95,7 +95,7 @@ export function Idag() {
           return (
             <Card title="Din dag">
               {borta ? (
-                <Row right={<Btn title="Jag är tillbaka" onPress={() => edit(jag.name + " är tillbaka", d => tillbaka(d, jag.id))} />}>
+                <Row right={<Btn title="Jag är tillbaka" onPress={() => kor({ typ: "franvaro-bort", personId: jag.id })} />}>
                   <T k="strong">{jag.away!.type}{jag.away!.to ? " t.o.m. " + nice(jag.away!.to) : " tills vidare"}</T>
                   <T k="sub">Arbetsledaren ser det och kan sätta in någon annan.</T>
                 </Row>
@@ -115,7 +115,7 @@ export function Idag() {
                   </Row>
                 );
               }) : (
-                <Row right={<Btn title="Sjukanmäl mig" onPress={() => edit(jag.name + " sjukanmäld från idag", d => sjukIdag(d, jag.id))} />}>
+                <Row right={<Btn title="Sjukanmäl mig" onPress={() => kor({ typ: "franvaro", personId: jag.id, away: { type: "Sjuk", from: today(), to: null } })} />}>
                   <T k="strong">Inget inbokat på dig</T>
                   <T k="sub">Hör av dig till arbetsledaren om du står utan jobb.</T>
                 </Row>
@@ -189,10 +189,10 @@ export function Idag() {
               <Row key={p.id} last={i === s.people.length - 1}
                 onPress={ledare ? () => open({ t: "person", id: p.id }) : undefined}
                 right={!(ledare || p.id === migId) ? undefined : away
-                  ? <Btn title="Tillbaka" onPress={() => edit(p.name + " är tillbaka", d => tillbaka(d, p.id))} />
+                  ? <Btn title="Tillbaka" onPress={() => kor({ typ: "franvaro-bort", personId: p.id })} />
                   : (
                     <View style={{ flexDirection: "row", gap: S.x1 }}>
-                      <Btn title="Sjuk idag" onPress={() => edit(p.name + " sjukanmäld från idag", d => sjukIdag(d, p.id))} />
+                      <Btn title="Sjuk idag" onPress={() => kor({ typ: "franvaro", personId: p.id, away: { type: "Sjuk", from: today(), to: null } })} />
                       <Btn title="···" onPress={() => open({ t: "absence", id: p.id, date })} />
                     </View>
                   )}>

@@ -12,7 +12,7 @@ import { certIssues, certState, cname, jobsOf, nextBooked, out, telNyckel } from
    två lägen, inte två flikar: flikraden har plats för fem, och Idag, Vecka,
    Inkorg och Skydd gör alla fyra något annat. */
 export function Register() {
-  const { s, edit } = useStore();
+  const { s, kor } = useStore();
   const open = useSheet();
   const t = useT();
   const [tab, setTab] = useState("kunder");
@@ -78,7 +78,7 @@ export function Register() {
               return (
                 <Row key={p.id} last={i === personal.length - 1} onPress={() => open({ t: "person", id: p.id })}
                   right={away
-                    ? <Btn title="Tillbaka" onPress={() => edit(p.name + ": frånvaro borttagen", x => { x.people.find(y => y.id === p.id)!.away = null; })} />
+                    ? <Btn title="Tillbaka" onPress={() => kor({ typ: "franvaro-bort", personId: p.id })} />
                     : <Btn title="Frånvaro" onPress={() => open({ t: "absence", id: p.id })} />}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: S.x2 }}>
                     <Avatar name={p.name} />

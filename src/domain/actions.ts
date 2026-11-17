@@ -36,6 +36,14 @@ export function forslag(s: State, j: Job): Person[] {
   return lediga.slice().sort((a, b) => pass(a) - pass(b) || a.name.localeCompare(b.name, "sv"));
 }
 
+/* Bemanningen som den blir när någon sätts in: de som är på plats plus den
+   nya. Den som är borta den dagen städas bort, annars ser jobbet bemannat ut
+   på grund av någon som är sjukskriven. */
+export function medInsatt(s: State, j: Job, personId: string): string[] {
+  const pa = onSite(s, j).filter(id => id !== personId);
+  return [...pa, personId];
+}
+
 /* Dagens luckor, värst först. Används av Idag och av veckolistan. */
 export const luckor = (s: State, datum: string) =>
   s.jobs.filter(j => j.date === datum && shortage(s, j) > 0)

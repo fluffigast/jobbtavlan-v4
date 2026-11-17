@@ -19,6 +19,18 @@ const arg = (name, fallback) => {
 const domain = arg("domain", "");
 const base = domain ? "" : arg("base", "/jobbtavlan-v4");
 
+/* Byggstämpeln: vilken commit sidan kommer från. Skrivs in före bygget och
+   återställs efteråt, så att arbetskopian inte bär en stämpel. */
+const byggeFil = "src/bygge.ts";
+const byggeOriginal = fs.readFileSync(byggeFil, "utf8");
+let commit = "okänd";
+try { commit = execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim(); } catch {}
+let smutsig = false;
+try { smutsig = execFileSync("git", ["status", "--porcelain"], { encoding: "utf8" }).trim().length > 0; } catch {}
+fs.writeFileSync(byggeFil,
+  byggeOriginal.replace('commit: "dev", tid: ""',
+    `commit: "${commit}${smutsig ? "+ändrat" : ""}", tid: "${new Date().toISOString().slice(0, 16).replace("T", " ")}"`));
+
 const file = "app.json";
 const original = fs.readFileSync(file, "utf8");
 const config = JSON.parse(original);
@@ -29,8 +41,9 @@ try {
   console.log(`Bygger webb med baseUrl ${JSON.stringify(base)}${domain ? ` för ${domain}` : ""}`);
   execFileSync("npx", ["expo", "export", "--platform", "web", "--output-dir", "dist", "--clear"], { stdio: "inherit" });
 } finally {
-  // app.json ska inte ändras av ett bygge.
+  // Varken app.json eller byggstämpeln ska ändras av ett bygge.
   fs.writeFileSync(file, original);
+  fs.writeFileSync(byggeFil, byggeOriginal);
 }
 
 // Utan .nojekyll hoppar GitHub Pages över kataloger som börjar med _, och
