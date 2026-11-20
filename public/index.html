@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <meta name="color-scheme" content="light dark" />
+    <title>%WEB_TITLE%</title>
+    <!-- Expos standardmall (react-native-web:s rekommenderade nollställning),
+         plus bakgrundsfärg i appens två lägen så att sidan inte blinkar vit
+         innan bunten laddat. Färgerna är bg i src/theme.ts. -->
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+        background: #F5F6F8;
+      }
+      @media (prefers-color-scheme: dark) {
+        html,
+        body {
+          background: #15181C;
+        }
+      }
+      body {
+        overflow: hidden;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>Jobbtavlan behöver JavaScript för att köra.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

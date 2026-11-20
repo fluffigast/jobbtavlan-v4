@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { useStore, useLedare } from "../store";
 import { Screen, Pad } from "../ui/Screen";
 import { Badge, Btn, Card, Empty, Row, T, useT } from "../ui/kit";
-import { S, F } from "../theme";
+import { S } from "../theme";
 import { secItems } from "../domain/logic";
 
 export function Skydd() {

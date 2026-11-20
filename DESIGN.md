@@ -116,9 +116,6 @@ meddelandehantering, och ett planeringsverktyg är inte det. Den ärliga vägen
 framåt är att låta personalen dela ett sms till appen via systemets delningsmeny,
 vilket är ett tryck i stället för en avskrift. Det är inte byggt.
 
-**Sms läses fortfarande in för hand**, av skälen ovan. Det är den sista biten
-teater som står kvar.
-
 
 ## Delad plan, roller och krockar
 

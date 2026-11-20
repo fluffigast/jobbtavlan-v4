@@ -1,13 +1,27 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator, Linking, Modal, Pressable, ScrollView, StyleSheet, Text,
-  TextInput, useColorScheme, View, ViewStyle,
+  AccessibilityInfo, ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, Pressable,
+  ScrollView, StyleProp, StyleSheet, Text, TextInput, TextStyle, useColorScheme, View, ViewStyle,
 } from "react-native";
+import type { HostInstance } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { makeTheme, Theme, S, F } from "../theme";
 
 export function useT(): Theme {
   return makeTheme(useColorScheme());
+}
+
+/* Den som stängt av rörelse i systemet ska slippa ark som glider och
+   toaster som tonar. Standard är av tills systemet svarat. */
+export function useReduceMotion() {
+  const [r, setR] = useState(false);
+  useEffect(() => {
+    let on = true;
+    AccessibilityInfo.isReduceMotionEnabled().then(v => { if (on) setR(v); }).catch(() => {});
+    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", setR);
+    return () => { on = false; sub.remove(); };
+  }, []);
+  return r;
 }
 
 export type Tone = "ok" | "warn" | "crit" | "plain";
@@ -30,13 +44,15 @@ export function Badge({ tone = "plain", children, strike }: { tone?: Tone; child
   );
 }
 
-export function Btn({ title, onPress, kind = "plain", disabled, style }:
-  { title: string; onPress?: () => void; kind?: "pri" | "plain" | "danger" | "quiet"; disabled?: boolean; style?: ViewStyle }) {
+/* label behövs när titeln är ett tecken ("‹", "···") som en skärmläsare
+   inte kan göra något av. */
+export function Btn({ title, onPress, kind = "plain", disabled, style, label }:
+  { title: string; onPress?: () => void; kind?: "pri" | "plain" | "danger" | "quiet"; disabled?: boolean; style?: ViewStyle; label?: string }) {
   const t = useT();
   const pri = kind === "pri";
   return (
     <Pressable
-      accessibilityRole="button" disabled={disabled} onPress={onPress}
+      accessibilityRole="button" accessibilityLabel={label} disabled={disabled} onPress={onPress}
       style={({ pressed }) => [
         st.btn,
         {
@@ -61,7 +77,7 @@ export function Card({ title, right, children, style }:
     <View style={[st.card, { backgroundColor: t.c.surface, borderColor: t.c.line }, style]}>
       {title ? (
         <View style={[st.cardHead, { borderBottomColor: t.c.line }]}>
-          <Text style={{ color: t.c.ink, fontSize: F.sm, fontWeight: "700", flex: 1 }}>{title}</Text>
+          <Text accessibilityRole="header" style={{ color: t.c.ink, fontSize: F.sm, fontWeight: "700", flex: 1 }}>{title}</Text>
           {right}
         </View>
       ) : null}
@@ -70,27 +86,36 @@ export function Card({ title, right, children, style }:
   );
 }
 
-/* Listrad. 56 px är golvet, inte taket: innehållet får växa. */
-export function Row({ children, onPress, right, last }:
-  { children: React.ReactNode; onPress?: () => void; right?: React.ReactNode; last?: boolean }) {
+/* Listrad. 56 px är golvet, inte taket: innehållet får växa.
+   Med onPress är det textdelen som trycks, inte hela raden: knappen till
+   höger och det som ligger i foot (ring-knappen, intygen) är egna knappar,
+   och en knapp i en knapp är ogiltig på webben och ett enda stort "knapp"
+   för en skärmläsare. Hela raden färgas ändå vid tryck. */
+export function Row({ children, onPress, right, last, foot, label }:
+  { children: React.ReactNode; onPress?: () => void; right?: React.ReactNode; last?: boolean;
+    foot?: React.ReactNode; label?: string }) {
   const t = useT();
-  const inner = (
-    <View style={[st.row, { borderBottomColor: last ? "transparent" : t.c.line }]}>
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>{children}</View>
+  const [pressed, setPressed] = React.useState(false);
+  const body = <View style={{ flex: 1, minWidth: 0, gap: 2 }}>{children}</View>;
+  return (
+    <View style={[st.row, { borderBottomColor: last ? "transparent" : t.c.line, backgroundColor: pressed ? t.c.hover : "transparent" }]}>
+      <View style={{ flex: 1, minWidth: 0, gap: S.x2 }}>
+        {onPress ? (
+          <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}
+            onPressIn={() => setPressed(true)} onPressOut={() => setPressed(false)}
+            style={{ minHeight: S.tap, justifyContent: "center" }}>
+            {body}
+          </Pressable>
+        ) : body}
+        {foot}
+      </View>
       {right ? <View style={st.rowRight}>{right}</View> : null}
     </View>
-  );
-  if (!onPress) return inner;
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button"
-      style={({ pressed }) => ({ backgroundColor: pressed ? t.c.hover : "transparent" })}>
-      {inner}
-    </Pressable>
   );
 }
 
 export function T({ children, k = "body", tone, style }:
-  { children: React.ReactNode; k?: "body" | "strong" | "sub" | "mono" | "h"; tone?: Tone; style?: any }) {
+  { children: React.ReactNode; k?: "body" | "strong" | "sub" | "mono" | "h"; tone?: Tone; style?: StyleProp<TextStyle> }) {
   const t = useT();
   const col = tone ? toneColors(t, tone).fg : k === "sub" ? t.c.muted : t.c.ink;
   const base =
@@ -99,7 +124,7 @@ export function T({ children, k = "body", tone, style }:
     : k === "h" ? { fontSize: F.lg, fontWeight: "700" as const }
     : k === "mono" ? { fontSize: F.sm, fontVariant: ["tabular-nums" as const] }
     : { fontSize: F.md };
-  return <Text style={[base, { color: col }, style]}>{children}</Text>;
+  return <Text accessibilityRole={k === "h" ? "header" : undefined} style={[base, { color: col }, style]}>{children}</Text>;
 }
 
 /* Ett nummer är till för att ringas. Med label blir träffytan en knapp som
@@ -152,7 +177,7 @@ export function Stats({ items }: { items: { label: string; value: string | numbe
       {items.map((i, n) => (
         <View key={n} style={[st.stat, { backgroundColor: t.c.surface, borderColor: t.c.line }]}>
           <Text style={{ color: t.c.muted, fontSize: F.xs }}>{i.label}</Text>
-          <Text style={{ color: i.tone ? toneColors(t, i.tone).fg : t.c.ink, fontSize: F.xl, fontWeight: "700" }}>
+          <Text style={{ color: i.tone ? toneColors(t, i.tone).fg : t.c.ink, fontSize: F.xl, fontWeight: "700", fontVariant: ["tabular-nums"] }}>
             {i.value}
           </Text>
           {i.sub ? <Text numberOfLines={1} style={{ color: t.c.muted, fontSize: F.xs, maxWidth: 160 }}>{i.sub}</Text> : null}
@@ -186,13 +211,24 @@ export function Segmented({ options, value, onChange }:
 export function Sheet({ open, title, onClose, children, footer }:
   { open: boolean; title: string; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode }) {
   const t = useT(); const ins = useSafeAreaInsets();
+  const stilla = useReduceMotion();
+  /* På webben flyttas fokus till rubriken när arket öppnas, annars står
+     tangentbordet kvar i listan bakom. Telefonen gör det själv. */
+  const rubrik = useRef<HostInstance>(null);
+  useEffect(() => {
+    if (Platform.OS !== "web" || !open) return;
+    rubrik.current?.focus();
+  }, [open]);
   return (
-    <Modal visible={open} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={st.scrim} onPress={onClose} />
-      <View style={[st.sheet, { backgroundColor: t.c.surface, borderColor: t.c.line, paddingBottom: ins.bottom || S.x4 }]}>
+    <Modal visible={open} animationType={stilla ? "fade" : "slide"} transparent onRequestClose={onClose}>
+      <Pressable style={st.scrim} onPress={onClose} accessibilityLabel="Stäng" accessibilityRole="button" />
+      {/* Fotraden med Spara ska ligga ovanför tangentbordet på iOS. Android
+          sköter det med sitt fönsterläge. */}
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} pointerEvents="box-none" style={{ flex: 1, justifyContent: "flex-end" }}>
+      <View accessibilityViewIsModal style={[st.sheet, { backgroundColor: t.c.surface, borderColor: t.c.line, paddingBottom: ins.bottom || S.x4 }]}>
         <View style={[st.grab, { backgroundColor: t.c.line }]} />
-        <View style={[st.sheetHead, { borderBottomColor: t.c.line }]}>
-          <Text style={{ color: t.c.ink, fontSize: F.lg, fontWeight: "700", flex: 1 }}>{title}</Text>
+        <View ref={rubrik} tabIndex={-1} style={[st.sheetHead, { borderBottomColor: t.c.line }]}>
+          <Text accessibilityRole="header" style={{ color: t.c.ink, fontSize: F.lg, fontWeight: "700", flex: 1 }}>{title}</Text>
           <Btn title="Stäng" kind="quiet" onPress={onClose} />
         </View>
         <ScrollView contentContainerStyle={{ padding: S.x4, gap: S.x3 }} keyboardShouldPersistTaps="handled">
@@ -200,23 +236,27 @@ export function Sheet({ open, title, onClose, children, footer }:
         </ScrollView>
         {footer ? <View style={[st.sheetFoot, { borderTopColor: t.c.line }]}>{footer}</View> : null}
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
-export function Field({ label, value, onChange, placeholder, keyboardType, multiline }:
+/* secure döljer det som skrivs, för pinkoder. Etiketten sätts också som
+   fältets namn: en synlig text ovanför är inte kopplad till fältet annars. */
+export function Field({ label, value, onChange, placeholder, keyboardType, multiline, secure }:
   { label: string; value: string; onChange: (v: string) => void; placeholder?: string;
-    keyboardType?: "default" | "phone-pad" | "number-pad"; multiline?: boolean }) {
+    keyboardType?: "default" | "phone-pad" | "number-pad"; multiline?: boolean; secure?: boolean }) {
   const t = useT();
   return (
     <View style={{ gap: S.x1, flex: 1 }}>
       <Text style={{ color: t.c.muted, fontSize: F.xs, fontWeight: "600" }}>{label}</Text>
       <TextInput
         value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={t.c.muted}
-        keyboardType={keyboardType} multiline={multiline}
+        keyboardType={keyboardType} multiline={multiline} accessibilityLabel={label}
+        secureTextEntry={secure} autoComplete={secure ? "off" : undefined} autoCorrect={secure ? false : undefined}
         style={[st.input, {
           backgroundColor: t.c.bg, borderColor: t.c.line, color: t.c.ink,
-          height: multiline ? 96 : S.tap, textAlignVertical: multiline ? "top" : "center",
+          minHeight: multiline ? 96 : S.tap, textAlignVertical: multiline ? "top" : "center",
           paddingTop: multiline ? S.x2 : 0,
         }]} />
     </View>
@@ -229,24 +269,24 @@ export function Choice({ label, options, value, onChange, scroll }:
   { label?: string; options: { key: string; label: string; sub?: string }[]; value: string;
     onChange: (k: string) => void; scroll?: boolean }) {
   const t = useT();
-  const Wrap = ({ children }: { children: React.ReactNode }) => scroll
-    ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.x2 }}>{children}</ScrollView>
-    : <View style={{ flexDirection: "row", flexWrap: "wrap", gap: S.x2 }}>{children}</View>;
-  return (
-    <View style={{ gap: S.x1 }}>
-      {label ? <Text style={{ color: t.c.muted, fontSize: F.xs, fontWeight: "600" }}>{label}</Text> : null}
-      <Wrap>
-        {options.map(o => {
+  const chips = options.map(o => {
           const on = o.key === value;
           return (
             <Pressable key={o.key} onPress={() => onChange(o.key)}
+              accessibilityRole="radio" accessibilityState={{ selected: on, checked: on }}
+              accessibilityLabel={o.sub ? o.label + ", " + o.sub : undefined}
               style={[st.chip, { borderColor: on ? t.c.accent : t.c.line, backgroundColor: on ? t.c.accent : t.c.surface }]}>
               <Text style={{ color: on ? t.c.onAccent : t.c.ink, fontSize: F.sm, fontWeight: on ? "700" : "500" }}>{o.label}</Text>
               {o.sub ? <Text style={{ color: on ? t.c.onAccent : t.c.muted, fontSize: F.xs }}>{o.sub}</Text> : null}
             </Pressable>
           );
-        })}
-      </Wrap>
+        });
+  return (
+    <View style={{ gap: S.x1 }} accessibilityRole="radiogroup">
+      {label ? <Text style={{ color: t.c.muted, fontSize: F.xs, fontWeight: "600" }}>{label}</Text> : null}
+      {scroll
+        ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.x2 }}>{chips}</ScrollView>
+        : <View style={{ flexDirection: "row", flexWrap: "wrap", gap: S.x2 }}>{chips}</View>}
     </View>
   );
 }
@@ -254,7 +294,8 @@ export function Choice({ label, options, value, onChange, scroll }:
 export function Check({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
   const t = useT();
   return (
-    <Pressable onPress={() => onChange(!value)} style={[st.check, { borderColor: t.c.line, backgroundColor: t.c.surface }]}>
+    <Pressable onPress={() => onChange(!value)} accessibilityRole="checkbox" accessibilityState={{ checked: value }}
+      style={[st.check, { borderColor: t.c.line, backgroundColor: t.c.surface }]}>
       <View style={[st.box, { borderColor: value ? t.c.accent : t.c.line, backgroundColor: value ? t.c.accent : "transparent" }]}>
         {value ? <Text style={{ color: t.c.onAccent, fontSize: F.xs, fontWeight: "900" }}>✓</Text> : null}
       </View>
@@ -276,11 +317,11 @@ export function Empty({ children, action }: { children: string; action?: React.R
 
 export function Loading() {
   const t = useT();
-  return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: t.c.bg }}><ActivityIndicator /></View>;
+  return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: t.c.bg }}><ActivityIndicator accessibilityLabel="Laddar" /></View>;
 }
 
 const st = StyleSheet.create({
-  badge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: S.x2, height: 24, borderRadius: 12, alignSelf: "flex-start" },
+  badge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: S.x2, paddingVertical: 3, minHeight: 24, borderRadius: 12, alignSelf: "flex-start" },
   dot: { width: 6, height: 6, borderRadius: 3 },
   btn: { minHeight: S.tap, paddingHorizontal: S.x4, borderRadius: S.r, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   card: { borderWidth: 1, borderRadius: S.r, overflow: "hidden" },
@@ -293,7 +334,7 @@ const st = StyleSheet.create({
   seg: { flexDirection: "row", borderRadius: S.r, borderWidth: 1, padding: 3, gap: 3 },
   segItem: { flex: 1, minHeight: 36, borderRadius: 8, borderWidth: 1, borderColor: "transparent", alignItems: "center", justifyContent: "center" },
   scrim: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(15,20,26,.45)" },
-  sheet: { position: "absolute", left: 0, right: 0, bottom: 0, maxHeight: "92%", borderTopLeftRadius: 18, borderTopRightRadius: 18, borderWidth: 1 },
+  sheet: { maxHeight: "92%", borderTopLeftRadius: 18, borderTopRightRadius: 18, borderWidth: 1 },
   grab: { width: 40, height: 4, borderRadius: 2, alignSelf: "center", marginTop: S.x2 },
   sheetHead: { flexDirection: "row", alignItems: "center", paddingLeft: S.x4, paddingRight: S.x2, minHeight: 56, borderBottomWidth: 1 },
   sheetFoot: { flexDirection: "row", gap: S.x2, padding: S.x4, borderTopWidth: 1 },

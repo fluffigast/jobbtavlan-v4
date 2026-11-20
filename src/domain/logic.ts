@@ -65,13 +65,14 @@ export const certIssues = (s: State) => {
   return r;
 };
 /* Tvåstegsinloggning räknas av sig själv ur personallistan, som i v3. */
-export const secItems = (s: State) => {
+export type SecItem = { id: string; text: string; done: boolean; auto: boolean; sub: string };
+export const secItems = (s: State): SecItem[] => {
   const no = s.people.filter(p => !p.mfa);
   return [{
     id: "mfa", auto: true, done: !no.length,
     text: "Tvåstegsinloggning på mejlen för alla",
     sub: no.length ? "Saknas för: " + no.map(p => p.name).join(", ") + ". Ändras under Personal." : "Alla har det påslaget.",
-  }].concat(s.security.map(i => ({ ...i, auto: false, sub: "" })) as any);
+  }, ...s.security.map(i => ({ ...i, auto: false, sub: "" }))];
 };
 export const secOpen = (s: State) =>
   secItems(s).filter(i => !i.done).length + s.incidents.filter(i => !i.done).length;

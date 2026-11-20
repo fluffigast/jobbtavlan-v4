@@ -20,6 +20,12 @@ export const niceAr = (s: string) => {
   return nice(s) + (d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : "");
 };
 export const longDate = (s: string) => { const d = pd(s); return DAYL[d.getDay()] + " " + d.getDate() + " " + MONL[d.getMonth()] + " " + d.getFullYear(); };
+/* Som longDate, men årtalet bara när det inte är i år. Titelraden på en
+   telefon har inte plats för "fredag 20 november 2026 · vecka 47". */
+export const longDateAr = (s: string) => {
+  const d = pd(s);
+  return DAYL[d.getDay()] + " " + d.getDate() + " " + MONL[d.getMonth()] + (d.getFullYear() !== new Date().getFullYear() ? " " + d.getFullYear() : "");
+};
 export const weekNo = (s: string) => {
   const d = pd(s); d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
   const w = new Date(d.getFullYear(), 0, 4);

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View, ViewStyle } from "react-native";
 import { useStore, useLedare } from "../store";
 import { useSheet } from "../sheets/Sheets";
 import { Screen, Pad } from "../ui/Screen";
@@ -47,6 +47,7 @@ export function Vecka() {
     };
     return (
       <Pressable key={d} onPress={press} disabled={!far} accessibilityRole="button"
+        accessibilityLabel={p.name + " " + nice(d) + ": " + (borta ? p.away!.type : mina.length ? mina.map(j => cname(s, j)).join(", ") : "ledig")}
         style={{ width: DAG - S.x2, height: RAD - S.x2, borderRadius: 8, borderWidth: 1, justifyContent: "center",
           paddingHorizontal: S.x2, marginRight: S.x2, marginBottom: S.x2,
           borderColor: mina.length || borta ? "transparent" : t.c.line,
@@ -75,8 +76,8 @@ export function Vecka() {
     <Screen title={"Vecka " + weekNo(week)} subtitle={nice(week) + " – " + nice(add(week, 4))}
       right={
         <View style={{ flexDirection: "row", gap: S.x1 }}>
-          <Btn title="‹" onPress={() => setWeek(add(week, -7))} style={{ paddingHorizontal: S.x4 }} />
-          <Btn title="›" onPress={() => setWeek(add(week, 7))} style={{ paddingHorizontal: S.x4 }} />
+          <Btn title="‹" label="Föregående vecka" onPress={() => setWeek(add(week, -7))} style={{ paddingHorizontal: S.x4 }} />
+          <Btn title="›" label="Nästa vecka" onPress={() => setWeek(add(week, 7))} style={{ paddingHorizontal: S.x4 }} />
         </View>
       }>
       <Pad>
@@ -99,7 +100,7 @@ export function Vecka() {
                   {ds.map(d => (
                     <View key={d} style={{ width: DAG - S.x2, marginRight: S.x2, alignItems: "center", justifyContent: "center" }}>
                       <Text style={{ color: d === today() ? t.c.accent : t.c.muted, fontSize: F.xs }}>{dayShort(d)}</Text>
-                      <Text style={{ color: d === today() ? t.c.accent : t.c.ink, fontSize: F.md, fontWeight: "700" }}>{dayNum(d)}</Text>
+                      <Text style={{ color: d === today() ? t.c.accent : t.c.ink, fontSize: F.md, fontWeight: "700", fontVariant: ["tabular-nums"] }}>{dayNum(d)}</Text>
                     </View>
                   ))}
                 </View>
@@ -112,10 +113,10 @@ export function Vecka() {
         </Card>
 
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: S.x3, alignItems: "center" }}>
-          <Legend swatch={{ backgroundColor: t.c.accent }} text="Bemannat" />
-          <Legend swatch={{ backgroundColor: t.c.critBg }} text="Saknar folk" />
-          <Legend swatch={{ borderWidth: 1, borderStyle: "dashed", borderColor: t.c.line }} text="Ledig" />
-          <Legend swatch={{ backgroundColor: t.c.hover }} text="Borta" />
+          <Legend swatch={{ backgroundColor: t.c.accent, borderColor: t.c.accent }} text="Bemannat" />
+          <Legend swatch={{ backgroundColor: t.c.critBg, borderColor: t.c.crit }} text="Saknar folk" />
+          <Legend swatch={{ borderStyle: "dashed", borderColor: t.c.line }} text="Ledig" />
+          <Legend swatch={{ backgroundColor: t.c.hover, borderColor: t.c.muted }} text="Borta" />
         </View>
 
         <Card title={brist.length ? "Luckor i veckan  " + brist.length : "Luckor i veckan"}>
@@ -140,11 +141,11 @@ export function Vecka() {
   );
 }
 
-function Legend({ swatch, text }: { swatch: any; text: string }) {
+function Legend({ swatch, text }: { swatch: ViewStyle; text: string }) {
   const t = useT();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-      <View style={[{ width: 16, height: 16, borderRadius: 5 }, swatch]} />
+      <View style={[{ width: 16, height: 16, borderRadius: 5, borderWidth: 1 }, swatch]} />
       <Text style={{ color: t.c.muted, fontSize: F.xs }}>{text}</Text>
     </View>
   );

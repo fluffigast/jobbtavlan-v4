@@ -21,6 +21,9 @@
       "package": "se.kvisttapp.jobbtavlan"
     },
     "web": {
+      "lang": "sv",
+      "description": "Dagens jobb, veckans bemanning och personalen, för en liten hantverksfirma. Demo med påhittad data.",
+      "themeColor": "#1B5E96",
       "favicon": "./assets/favicon.png",
       "bundler": "metro",
       "output": "single"

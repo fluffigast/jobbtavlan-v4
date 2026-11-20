@@ -2,7 +2,7 @@ import React from "react";
 import { Pressable, ScrollView, View, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useT } from "./kit";
-import { S, F } from "../theme";
+import { S, F, BREDD } from "../theme";
 import { useStore } from "../store";
 import { useSheet } from "../sheets/Sheets";
 
@@ -17,23 +17,25 @@ export function Screen({ title, subtitle, right, children, scroll = true }:
       backgroundColor: t.c.surface, borderBottomWidth: 1, borderBottomColor: t.c.line,
       flexDirection: "row", alignItems: "flex-end", gap: S.x3,
     }}>
+      <View style={{ flex: 1, maxWidth: BREDD, alignSelf: "center", flexDirection: "row", alignItems: "flex-end", gap: S.x3 }}>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={{ color: t.c.ink, fontSize: F.xxl, fontWeight: "700", letterSpacing: -0.4 }}>{title}</Text>
+        <Text accessibilityRole="header" style={{ color: t.c.ink, fontSize: F.xxl, fontWeight: "700", letterSpacing: -0.4 }}>{title}</Text>
         {subtitle ? <Text numberOfLines={1} style={{ color: t.c.muted, fontSize: F.sm, marginTop: 2 }}>{subtitle}</Text> : null}
       </View>
       {right}
       <Konto />
+      </View>
     </View>
   );
   return (
     <View style={{ flex: 1, backgroundColor: t.c.bg }}>
       {head}
       {scroll ? (
-        <ScrollView contentContainerStyle={{ paddingVertical: S.x4, gap: S.x4, paddingBottom: S.x6 }}>
+        <ScrollView contentContainerStyle={{ paddingVertical: S.x4, gap: S.x4, paddingBottom: S.x6, maxWidth: BREDD, width: "100%", alignSelf: "center" }}>
           {children}
         </ScrollView>
       ) : (
-        <View style={{ flex: 1 }}>{children}</View>
+        <View style={{ flex: 1, maxWidth: BREDD, width: "100%", alignSelf: "center" }}>{children}</View>
       )}
     </View>
   );

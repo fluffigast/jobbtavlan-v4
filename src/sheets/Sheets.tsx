@@ -4,11 +4,11 @@ import { useStore } from "../store";
 import { useT, Sheet, Field, Choice, Check, Btn, T, Badge, Row, Empty } from "../ui/kit";
 import { S, F } from "../theme";
 import { add, monday, nice, niceAr, today, uid, dayShort, dayNum } from "../domain/dates";
-import { C, P, cname, free, jobsOf, out, shortage, onSite } from "../domain/logic";
+import { C, P, cname, jobsOf, out, shortage, onSite } from "../domain/logic";
 import { ROLLNAMN } from "../domain/roles";
 import { BYGGE } from "../bygge";
 import { forslag, medInsatt, omAr, vardagar } from "../domain/actions";
-import { Job, Person, Customer } from "../domain/types";
+import { Job } from "../domain/types";
 
 export type SheetSpec =
   | { t: "job"; id?: string; date?: string; cid?: string; pid?: string }
@@ -19,6 +19,8 @@ export type SheetSpec =
   | { t: "give"; pid: string; date: string }
   | { t: "cert"; id: string; namn: string }
   | { t: "konto" }
+  | { t: "sms" }
+  | { t: "rapport" }
   | null;
 
 const Ctx = createContext<(s: SheetSpec) => void>(() => {});
@@ -36,7 +38,7 @@ function DateStrip({ value, onChange, allowNone }:
       <Text style={{ color: t.c.muted, fontSize: F.xs, fontWeight: "600" }}>Dag</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.x2 }}>
         {allowNone ? (
-          <Pressable onPress={() => onChange(null)}
+          <Pressable onPress={() => onChange(null)} accessibilityRole="radio" accessibilityState={{ selected: value === null, checked: value === null }}
             style={{ minHeight: 56, paddingHorizontal: S.x3, borderRadius: S.r, borderWidth: 1, alignItems: "center", justifyContent: "center",
               borderColor: value === null ? t.c.accent : t.c.line, backgroundColor: value === null ? t.c.accent : t.c.surface }}>
             <Text style={{ color: value === null ? t.c.onAccent : t.c.ink, fontSize: F.sm, fontWeight: "600" }}>Tills vidare</Text>
@@ -45,11 +47,12 @@ function DateStrip({ value, onChange, allowNone }:
         {days.map(d => {
           const on = d === value, isToday = d === today();
           return (
-            <Pressable key={d} onPress={() => onChange(d)}
+            <Pressable key={d} onPress={() => onChange(d)} accessibilityRole="radio" accessibilityLabel={nice(d)}
+              accessibilityState={{ selected: on, checked: on }}
               style={{ width: 52, minHeight: 56, borderRadius: S.r, borderWidth: 1, alignItems: "center", justifyContent: "center",
                 borderColor: on ? t.c.accent : t.c.line, backgroundColor: on ? t.c.accent : t.c.surface }}>
               <Text style={{ color: on ? t.c.onAccent : t.c.muted, fontSize: F.xs }}>{dayShort(d)}</Text>
-              <Text style={{ color: on ? t.c.onAccent : isToday ? t.c.accent : t.c.ink, fontSize: F.lg, fontWeight: "700" }}>{dayNum(d)}</Text>
+              <Text style={{ color: on ? t.c.onAccent : isToday ? t.c.accent : t.c.ink, fontSize: F.lg, fontWeight: "700", fontVariant: ["tabular-nums"] }}>{dayNum(d)}</Text>
             </Pressable>
           );
         })}
@@ -63,6 +66,7 @@ function Stepper({ label, value, onChange, min = 1, max = 9 }:
   const t = useT();
   const btn = (txt: string, d: number, off: boolean) => (
     <Pressable disabled={off} onPress={() => onChange(Math.min(max, Math.max(min, value + d)))}
+      accessibilityRole="button" accessibilityLabel={d < 0 ? "Färre" : "Fler"}
       style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center", opacity: off ? 0.3 : 1 }}>
       <Text style={{ color: t.c.ink, fontSize: F.xl, fontWeight: "600" }}>{txt}</Text>
     </Pressable>
@@ -73,7 +77,7 @@ function Stepper({ label, value, onChange, min = 1, max = 9 }:
       <View style={{ flexDirection: "row", alignItems: "center", alignSelf: "flex-start",
         borderWidth: 1, borderColor: t.c.line, borderRadius: S.r, backgroundColor: t.c.surface }}>
         {btn("−", -1, value <= min)}
-        <Text style={{ color: t.c.ink, fontSize: F.lg, fontWeight: "700", minWidth: 32, textAlign: "center" }}>{value}</Text>
+        <Text accessibilityLabel={label + ": " + value} style={{ color: t.c.ink, fontSize: F.lg, fontWeight: "700", minWidth: 32, textAlign: "center", fontVariant: ["tabular-nums"] }}>{value}</Text>
         {btn("+", 1, value >= max)}
       </View>
     </View>
@@ -99,6 +103,8 @@ function Body({ spec, close }: { spec: NonNullable<SheetSpec>; close: () => void
   if (spec.t === "replace") return <ReplaceSheet spec={spec} close={close} />;
   if (spec.t === "cert") return <CertSheet spec={spec} close={close} />;
   if (spec.t === "konto") return <KontoSheet close={close} />;
+  if (spec.t === "sms") return <SmsSheet close={close} />;
+  if (spec.t === "rapport") return <RapportSheet close={close} />;
   return <GiveSheet spec={spec} close={close} />;
 }
 
@@ -449,12 +455,52 @@ function KontoSheet({ close }: { close: () => void }) {
       <Field label="Serveradress" value={bas} onChange={setBas} placeholder="https://plan.firman.se" />
       <View style={{ flexDirection: "row", gap: S.x3 }}>
         <Field label="Ditt namn" value={namn} onChange={setNamn} placeholder="erik" />
-        <Field label="Pinkod" value={pin} onChange={setPin} keyboardType="number-pad" />
+        <Field label="Pinkod" value={pin} onChange={setPin} keyboardType="number-pad" secure />
       </View>
       {fel ? <T tone="crit">{fel}</T> : null}
       <View style={{ height: 1, backgroundColor: th.c.line }} />
       <Btn title="Återställ demodata" onPress={() => { reset(); close(); }} />
       <Bygge />
+    </Sheet>
+  );
+}
+
+
+/* Ett inkommet sms skrivs av för hand, se Inkorg. Arket gör att inkorgen
+   börjar med det som kommit in, inte med ett tomt formulär. */
+function SmsSheet({ close }: { close: () => void }) {
+  const { kor } = useStore();
+  const [from, setFrom] = useState("");
+  const [text, setText] = useState("");
+  const spara = () => {
+    kor({ typ: "sms-ny", id: uid(), from: from.trim(), text: text.trim() });
+    close();
+  };
+  return (
+    <Sheet open title="Nytt sms" onClose={close}
+      footer={<Btn title="Lägg till" kind="pri" disabled={!from.trim() || !text.trim()} onPress={spara} style={{ flex: 1 }} />}>
+      <T k="sub">Skriv av det sms som kom till jobbtelefonen. Känt nummer får en knapp som bokar eller sjukanmäler.</T>
+      <Field label="Från nummer" value={from} onChange={setFrom} keyboardType="phone-pad" placeholder="070-555 02 01" />
+      <Field label="Meddelande" value={text} onChange={setText} multiline placeholder="Hej, när kan ni komma?" />
+    </Sheet>
+  );
+}
+
+function RapportSheet({ close }: { close: () => void }) {
+  const { s, kor } = useStore();
+  const [who, setWho] = useState(s.people[0]?.name || "");
+  const [text, setText] = useState("");
+  const spara = () => {
+    kor({ typ: "rapport-ny", id: uid(), text: text.trim(), who });
+    close();
+  };
+  return (
+    <Sheet open title="Rapportera konstigt mejl, sms eller samtal" onClose={close}
+      footer={<Btn title="Rapportera" kind="pri" disabled={!text.trim()} onPress={spara} style={{ flex: 1 }} />}>
+      <Choice label="Vem" value={who} onChange={setWho} scroll
+        options={s.people.map(p => ({ key: p.name, label: p.name }))} />
+      <Field label="Vad hände" value={text} onChange={setText} multiline
+        placeholder="Sms om obetald faktura med länk" />
     </Sheet>
   );
 }

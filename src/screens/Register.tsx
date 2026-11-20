@@ -6,7 +6,7 @@ import { Screen, Pad } from "../ui/Screen";
 import { Avatar, Badge, Btn, Card, Empty, Row, Segmented, T, Tel, useT } from "../ui/kit";
 import { S, F } from "../theme";
 import { nice, today } from "../domain/dates";
-import { certIssues, certState, cname, jobsOf, nextBooked, out, telNyckel } from "../domain/logic";
+import { certIssues, certState, jobsOf, nextBooked, out, telNyckel } from "../domain/logic";
 
 /* Kunder och personal är två register. På en telefon är det en flik med
    två lägen, inte två flikar: flikraden har plats för fem, och Idag, Vecka,
@@ -45,8 +45,8 @@ export function Register() {
         <Segmented value={tab} onChange={setTab}
           options={[{ key: "kunder", label: "Kunder" }, { key: "personal", label: "Personal" }]} />
         <TextInput value={q} onChangeText={setQ} placeholder="Sök namn, uppdrag eller telefonnummer" placeholderTextColor={t.c.muted}
-          clearButtonMode="while-editing" returnKeyType="search"
-          style={{ height: 44, borderWidth: 1, borderColor: t.c.line, borderRadius: S.r,
+          clearButtonMode="while-editing" returnKeyType="search" accessibilityLabel="Sök" accessibilityRole="search"
+          style={{ minHeight: 44, borderWidth: 1, borderColor: t.c.line, borderRadius: S.r,
             paddingHorizontal: S.x3, backgroundColor: t.c.surface, color: t.c.ink, fontSize: F.md }} />
 
         {tab === "kunder" ? (
@@ -55,15 +55,16 @@ export function Register() {
               const n = nextBooked(s, c.id), done = c.status === "Klart";
               return (
                 <Row key={c.id} last={i === kunder.length - 1} onPress={() => open({ t: "cust", id: c.id })}
+                  label={"Ändra " + c.name}
                   right={done ? <Badge tone="ok">Klart</Badge>
-                    : <Btn title="Boka in" kind={n ? "plain" : "pri"} onPress={() => open({ t: "job", cid: c.id })} />}>
+                    : <Btn title="Boka in" kind={n ? "plain" : "pri"} onPress={() => open({ t: "job", cid: c.id })} />}
+                  foot={<Tel phone={c.phone} label={"Ring " + (c.contact || c.name)} />}>
                   <T k="strong">{c.name}</T>
                   <T k="sub">{[c.project, c.address].filter(Boolean).join(" · ")}</T>
                   <View style={{ flexDirection: "row", gap: S.x2, alignItems: "center", flexWrap: "wrap" }}>
                     {!done ? <Badge tone={c.status === "Väntar" ? "warn" : "plain"}>{c.status}</Badge> : null}
                     {done ? null : n ? <T k="sub">Nästa: {nice(n)}</T> : <Badge tone="crit">Inte inbokad</Badge>}
                   </View>
-                  <Tel phone={c.phone} label={"Ring " + (c.contact || c.name)} />
                 </Row>
               );
             }) : <Empty action={<Btn title="Ny kund" kind="pri" onPress={() => open({ t: "cust" })} />}>
@@ -77,9 +78,28 @@ export function Register() {
               const mine = jobsOf(s, p.id, d);
               return (
                 <Row key={p.id} last={i === personal.length - 1} onPress={() => open({ t: "person", id: p.id })}
+                  label={"Ändra " + p.name}
                   right={away
                     ? <Btn title="Tillbaka" onPress={() => kor({ typ: "franvaro-bort", personId: p.id })} />
-                    : <Btn title="Frånvaro" onPress={() => open({ t: "absence", id: p.id })} />}>
+                    : <Btn title="Frånvaro" onPress={() => open({ t: "absence", id: p.id })} />}
+                  foot={<>
+                    {/* Ett intyg som går ut är inget att bara titta på. Trycket förnyar det. */}
+                    {(p.certs || []).some(c => certState(c) !== "ok") ? (
+                      <View style={{ flexDirection: "row", gap: S.x1, flexWrap: "wrap" }}>
+                        {(p.certs || []).map(c => {
+                          const st = certState(c);
+                          if (st === "ok") return null;
+                          return (
+                            <Pressable key={c.name} onPress={() => open({ t: "cert", id: p.id, namn: c.name })}
+                              accessibilityRole="button" accessibilityLabel={"Förnya " + c.name}>
+                              <Badge tone={st}>{c.name + (st === "crit" ? " gick ut " : " går ut ") + c.expires + " · förnya"}</Badge>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    ) : null}
+                    <Tel phone={p.phone} label={"Ring " + p.name} />
+                  </>}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: S.x2 }}>
                     <Avatar name={p.name} />
                     <View style={{ flex: 1, minWidth: 0 }}>
@@ -96,18 +116,7 @@ export function Register() {
                           {p.vacLeft < 0 ? Math.abs(p.vacLeft) + " dagar över" : p.vacLeft + " semesterdagar"}
                         </Badge>
                       : null}
-                    {/* Ett intyg som går ut är inget att bara titta på. Trycket förnyar det. */}
-                    {(p.certs || []).map(c => {
-                      const st = certState(c);
-                      if (st === "ok") return null;
-                      return (
-                        <Pressable key={c.name} onPress={() => open({ t: "cert", id: p.id, namn: c.name })}>
-                          <Badge tone={st}>{c.name + (st === "crit" ? " gick ut " : " går ut ") + c.expires + " · förnya"}</Badge>
-                        </Pressable>
-                      );
-                    })}
                   </View>
-                  <Tel phone={p.phone} label={"Ring " + p.name} />
                 </Row>
               );
             }) : <Empty>Ingen person matchar sökningen.</Empty>}

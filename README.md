@@ -15,7 +15,7 @@ på en riktig telefon. Ändringar sparas lokalt på enheten.
 
 ## Status
 
-74 tester över datumräkning, bemanningsregler, demodata, handlingarna och
+75 tester över datumräkning, bemanningsregler, demodata, handlingarna och
 servern, körda med Node:s egen testkörare (`npm test`). De testar de riktiga
 modulerna och riktig http, inget är ersatt med attrapper. Fem av dem är de hål
 en granskning hittade i den första servern, och de ligger kvar som vakt.
@@ -71,6 +71,9 @@ men det räcker för att visa den på en adress utan att installera något.
     node scripts/build-web.mjs            # bygger dist/ för en projektsida
     node scripts/build-web.mjs --domain jobbtavlan.exempel.se   # egen domän
     npx serve dist                        # titta lokalt
+
+`public/index.html` är sidans mall: språk, bakgrundsfärg i ljust och mörkt
+läge innan bunten laddat. Expo fyller i titel och språk från `app.json`.
 
 `.github/workflows/pages.yml` kör testerna, bygger och publicerar till GitHub
 Pages vid varje push till `main`. För att koppla en egen underdomän:

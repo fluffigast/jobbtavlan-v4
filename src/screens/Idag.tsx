@@ -5,8 +5,8 @@ import { useSheet } from "../sheets/Sheets";
 import { Screen, Pad } from "../ui/Screen";
 import { Alert, Badge, Btn, Card, Empty, Row, Stats, T, Tel, Avatar, useT } from "../ui/kit";
 import { S, F } from "../theme";
-import { add, dayNum, dayShort, longDate, monday, nice, today, weekNo, workday } from "../domain/dates";
-import { cname, free, jobsOf, jobsOn, out, shortage, unread } from "../domain/logic";
+import { add, dayNum, dayShort, longDateAr, monday, nice, today, weekNo, workday } from "../domain/dates";
+import { cname, free, jobsOf, jobsOn, out, shortage } from "../domain/logic";
 import { forslag, luckor, medInsatt } from "../domain/actions";
 import { Job } from "../domain/types";
 
@@ -24,7 +24,7 @@ function WeekStrip({ date, onPick }: { date: string; onPick: (d: string) => void
             style={{ width: 56, paddingVertical: S.x2, borderRadius: S.r, borderWidth: 1, alignItems: "center", gap: 2,
               borderColor: on ? t.c.accent : t.c.line, backgroundColor: on ? t.c.accent : t.c.surface }}>
             <Text style={{ color: on ? t.c.onAccent : t.c.muted, fontSize: F.xs }}>{dayShort(d)}</Text>
-            <Text style={{ color: on ? t.c.onAccent : isToday ? t.c.accent : t.c.ink, fontSize: F.lg, fontWeight: "700" }}>{dayNum(d)}</Text>
+            <Text style={{ color: on ? t.c.onAccent : isToday ? t.c.accent : t.c.ink, fontSize: F.lg, fontWeight: "700", fontVariant: ["tabular-nums"] }}>{dayNum(d)}</Text>
             <View style={{ height: 6 }}>
               {n ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: on ? t.c.onAccent : t.c.crit }} /> : null}
             </View>
@@ -45,7 +45,6 @@ export function Idag() {
   const tot = gaps.reduce((a, j) => a + shortage(s, j), 0);
   const fr = free(s, date);
   const aw = s.people.filter(p => out(p, date));
-  const un = unread(s);
 
   const satt = (j: Job, pid: string) => kor({ typ: "bemanning", jobbId: j.id, personer: medInsatt(s, j, pid) });
 
@@ -63,7 +62,7 @@ export function Idag() {
   return (
     <Screen
       title={date === today() ? "Idag" : nice(date)}
-      subtitle={longDate(date) + " · vecka " + weekNo(date)}
+      subtitle={"vecka " + weekNo(date) + " · " + longDateAr(date)}
       right={ledare ? <Btn title="Nytt jobb" kind="pri" onPress={() => open({ t: "job", date })} />
         : <Badge>Du ser firmans plan</Badge>}>
       <WeekStrip date={date} onPick={setDate} />
@@ -72,7 +71,6 @@ export function Idag() {
         { label: "Saknas", value: tot, tone: tot ? "crit" : undefined, sub: tot ? gaps.map(j => cname(s, j)).join(", ") : "Fullt bemannat" },
         { label: "Lediga", value: fr.length, sub: fr.map(p => p.name).join(", ") },
         { label: "Borta", value: aw.length, sub: aw.map(p => p.name).join(", ") },
-        { label: "Olästa sms", value: un.length },
       ]} />
 
       <Pad>
@@ -159,7 +157,9 @@ export function Idag() {
             const c = s.customers.find(x => x.id === j.customerId);
             return (
               <Row key={j.id} last={i === js.length - 1} onPress={ledare ? () => open({ t: "job", id: j.id }) : undefined}
-                right={n ? <Badge tone="crit">{"Saknas " + n}</Badge> : <Badge tone="ok">Bemannat</Badge>}>
+                label={ledare ? "Ändra " + cname(s, j) : undefined}
+                right={n ? <Badge tone="crit">{"Saknas " + n}</Badge> : <Badge tone="ok">Bemannat</Badge>}
+                foot={c?.phone ? <Tel phone={c.phone} label={"Ring " + (c.contact || c.name)} /> : null}>
                 <T k="strong">{cname(s, j)}</T>
                 <T k="sub">{j.title}{c?.address ? " · " + c.address : ""}</T>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: S.x1, marginTop: 2 }}>
@@ -171,7 +171,6 @@ export function Idag() {
                       : <Badge key={id}>{p.name}</Badge>;
                   })}
                 </View>
-                {c?.phone ? <Tel phone={c.phone} label={"Ring " + (c.contact || c.name)} /> : null}
               </Row>
             );
           }) : (
@@ -188,12 +187,13 @@ export function Idag() {
             return (
               <Row key={p.id} last={i === s.people.length - 1}
                 onPress={ledare ? () => open({ t: "person", id: p.id }) : undefined}
+                label={ledare ? "Ändra " + p.name : undefined}
                 right={!(ledare || p.id === migId) ? undefined : away
                   ? <Btn title="Tillbaka" onPress={() => kor({ typ: "franvaro-bort", personId: p.id })} />
                   : (
                     <View style={{ flexDirection: "row", gap: S.x1 }}>
                       <Btn title="Sjuk idag" onPress={() => kor({ typ: "franvaro", personId: p.id, away: { type: "Sjuk", from: today(), to: null } })} />
-                      <Btn title="···" onPress={() => open({ t: "absence", id: p.id, date })} />
+                      <Btn title="···" label={"Annan frånvaro för " + p.name} onPress={() => open({ t: "absence", id: p.id, date })} />
                     </View>
                   )}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: S.x2 }}>

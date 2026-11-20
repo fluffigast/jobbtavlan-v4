@@ -2,7 +2,7 @@
    inte mot dagens datum, så att testet betyder samma sak varje dag. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { add, iso, monday, nice, niceAr, longDate, weekNo, pd, workday, digits, dayShort, dayNum } from "../src/domain/dates";
+import { add, iso, monday, nice, niceAr, longDate, longDateAr, weekNo, pd, workday, digits, dayShort, dayNum } from "../src/domain/dates";
 
 test("add räknar över månadsskifte och skottår", () => {
   assert.equal(add("2026-11-30", 1), "2026-12-01");
@@ -45,6 +45,12 @@ test("digits skalar bort allt utom siffror", () => {
   assert.equal(digits("070-555 02 01"), "0705550201");
   assert.equal(digits("+46 70 555 02 01"), "46705550201");
   assert.equal(digits(undefined), "");
+});
+
+test("longDateAr sätter ut årtalet bara när det inte är i år", () => {
+  const ar = new Date().getFullYear();
+  assert.equal(longDateAr(ar + "-11-17"), longDate(ar + "-11-17").replace(" " + ar, ""));
+  assert.equal(longDateAr((ar + 5) + "-11-17"), longDate((ar + 5) + "-11-17"));
 });
 
 test("niceAr sätter ut årtalet bara när det inte är i år", () => {

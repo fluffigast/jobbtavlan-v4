@@ -1,11 +1,10 @@
-import React, { useEffect } from "react";
-import { Platform, Pressable, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, Platform, Pressable, Text, View, useColorScheme } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { NavigationContainer, DefaultTheme, DarkTheme } from "@react-navigation/native";
+import { NavigationContainer, DefaultTheme, DarkTheme, Theme as NavTheme } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { useColorScheme } from "react-native";
 import { Store, useStore } from "./src/store";
 import { SheetHost } from "./src/sheets/Sheets";
 import { Idag } from "./src/screens/Idag";
@@ -14,7 +13,7 @@ import { Register } from "./src/screens/Register";
 import { Inkorg } from "./src/screens/Inkorg";
 import { Skydd } from "./src/screens/Skydd";
 import { makeTheme, S, F } from "./src/theme";
-import { Loading } from "./src/ui/kit";
+import { Loading, useReduceMotion } from "./src/ui/kit";
 import { WebShell } from "./src/ui/WebShell";
 import { secOpen, shortToday, unread } from "./src/domain/logic";
 
@@ -30,14 +29,22 @@ const ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
 function Toast() {
   const { toast, clearToast, undo } = useStore();
   const t = makeTheme(useColorScheme());
+  const stilla = useReduceMotion();
+  /* Tonar in nedifrån på 160 ms, så den inte bara står där plötsligt.
+     Med rörelse avstängd i systemet visas den direkt. */
+  const inne = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (!toast) return;
+    inne.setValue(stilla ? 1 : 0);
+    Animated.timing(inne, { toValue: 1, duration: 160, useNativeDriver: Platform.OS !== "web" }).start();
     const id = setTimeout(clearToast, toast.undo ? 5000 : 2600);
     return () => clearTimeout(id);
-  }, [toast, clearToast]);
+  }, [toast, clearToast, inne, stilla]);
   if (!toast) return null;
   return (
-    <View style={{ position: "absolute", left: S.x4, right: S.x4, bottom: 96, alignItems: "center" }}>
+    <Animated.View accessibilityLiveRegion="polite" accessibilityRole="alert"
+      style={{ position: "absolute", left: S.x4, right: S.x4, bottom: 96, alignItems: "center",
+        opacity: inne, transform: [{ translateY: inne.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }}>
       <View style={{
         flexDirection: "row", alignItems: "center", gap: S.x3, maxWidth: 520,
         backgroundColor: t.c.ink, borderRadius: S.r, paddingLeft: S.x4,
@@ -47,13 +54,13 @@ function Toast() {
         {toast.undo ? (
           <Pressable onPress={() => { undo(); }} hitSlop={8}
             style={({ pressed }) => ({ paddingHorizontal: S.x3, paddingVertical: S.x2, opacity: pressed ? 0.6 : 1 })}>
-            <Text style={{ color: t.c.accent === "#1B5E96" ? "#9FD0FF" : t.c.accent, fontSize: F.sm, fontWeight: "700" }}>
+            <Text style={{ color: t.c.onInk, fontSize: F.sm, fontWeight: "700" }}>
               Ångra
             </Text>
           </Pressable>
         ) : null}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -74,8 +81,13 @@ function Tabs() {
         tabBarStyle: { backgroundColor: t.c.surface, borderTopColor: t.c.line, height: Platform.OS === "ios" ? 88 : 64, paddingTop: 6 },
         tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
         tabBarBadge: badges[route.name] || undefined,
-        /* I mörkt läge är crit en ljus röd: svart text, annars läses siffran inte. */
-        tabBarBadgeStyle: { backgroundColor: t.c.crit, color: t.dark ? t.c.bg : "#FFFFFF", fontSize: 11 },
+        /* Bara luckor idag larmar rött. Olästa sms och öppna skyddspunkter är
+           att göra, inte att släppa allt för, och ett rött märke på varje flik
+           tränar bort blicken från det enda som brådskar.
+           I mörkt läge är crit en ljus röd: svart text, annars läses siffran inte. */
+        tabBarBadgeStyle: route.name === "Idag"
+          ? { backgroundColor: t.c.crit, color: t.dark ? t.c.bg : "#FFFFFF", fontSize: 11 }
+          : { backgroundColor: t.c.muted, color: t.dark ? t.c.bg : "#FFFFFF", fontSize: 11 },
         tabBarIcon: ({ color, size }) => <Ionicons name={ICON[route.name]} size={size} color={color} />,
       })}>
       <Tab.Screen name="Idag" component={Idag} />
@@ -92,16 +104,17 @@ function Tabs() {
 export default function App() {
   const scheme = useColorScheme();
   const t = makeTheme(scheme);
-  const navTheme = {
-    ...(scheme === "dark" ? DarkTheme : DefaultTheme),
-    colors: { ...(scheme === "dark" ? DarkTheme : DefaultTheme).colors, background: t.c.bg, card: t.c.surface, border: t.c.line, text: t.c.ink, primary: t.c.accent },
+  const bas = scheme === "dark" ? DarkTheme : DefaultTheme;
+  const navTheme: NavTheme = {
+    ...bas,
+    colors: { ...bas.colors, background: t.c.bg, card: t.c.surface, border: t.c.line, text: t.c.ink, primary: t.c.accent },
   };
   return (
     <SafeAreaProvider>
       <Store>
         <SheetHost>
           <WebShell>
-            <NavigationContainer theme={navTheme as any}>
+            <NavigationContainer theme={navTheme}>
               <Tabs />
               <Toast />
               <StatusBar style={scheme === "dark" ? "light" : "dark"} />

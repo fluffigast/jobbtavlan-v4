@@ -2,23 +2,20 @@ import React, { useState } from "react";
 import { View } from "react-native";
 import { useStore } from "../store";
 import { Screen, Pad } from "../ui/Screen";
-import { Badge, Btn, Card, Choice, Empty, Field, Row, Segmented, T, Tel } from "../ui/kit";
+import { Badge, Btn, Card, Empty, Row, Segmented, T, Tel } from "../ui/kit";
 import { useSheet } from "../sheets/Sheets";
 import { S } from "../theme";
-import { uid } from "../domain/dates";
 import { avsandare, unread, who } from "../domain/logic";
 
 /* Appen läser inte telefonens sms själv: iOS tillåter det inte alls, och på
    Android kräver det SMS-behörighet som Google bara släpper igenom för appar
-   vars huvudsyfte är meddelanden. Därför skrivs de in för hand, som i v3. */
+   vars huvudsyfte är meddelanden. Därför skrivs de in för hand, som i v3.
+   Formuläret ligger i ett ark bakom en knapp i titelraden: inkorgen finns för
+   det som kommit in, och på en telefon fyllde formuläret hela första skärmen. */
 export function Inkorg() {
   const { s, kor } = useStore();
   const open = useSheet();
   const [tab, setTab] = useState("sms");
-  const [from, setFrom] = useState("");
-  const [text, setText] = useState("");
-  const [incWho, setIncWho] = useState(s.people[0]?.name || "");
-  const [incText, setIncText] = useState("");
 
   const sms = s.sms.slice().sort((a, b) => Number(a.done) - Number(b.done) || (a.ts < b.ts ? 1 : -1));
   const inc = s.incidents.slice().sort((a, b) => Number(a.done) - Number(b.done) || (a.ts < b.ts ? 1 : -1));
@@ -27,24 +24,16 @@ export function Inkorg() {
   return (
     <Screen title="Inkorg"
       subtitle={unread(s).length + (unread(s).length === 1 ? " oläst sms · " : " olästa sms · ") +
-        openInc + (openInc === 1 ? " öppen rapport" : " öppna rapporter")}>
+        openInc + (openInc === 1 ? " öppen rapport" : " öppna rapporter")}
+      right={tab === "sms"
+        ? <Btn title="Nytt sms" kind="pri" onPress={() => open({ t: "sms" })} />
+        : <Btn title="Rapportera" kind="pri" onPress={() => open({ t: "rapport" })} />}>
       <Pad gap={S.x3}>
         <Segmented value={tab} onChange={setTab}
           options={[{ key: "sms", label: "Sms", n: unread(s).length }, { key: "rapport", label: "Rapporter", n: openInc }]} />
 
         {tab === "sms" ? (
           <>
-            <Card title="Lägg in inkommande sms">
-              <View style={{ padding: S.x4, gap: S.x3 }}>
-                <Field label="Från nummer" value={from} onChange={setFrom} keyboardType="phone-pad" placeholder="070-555 02 01" />
-                <Field label="Meddelande" value={text} onChange={setText} multiline />
-                <Btn title="Lägg till" kind="pri" disabled={!from.trim() || !text.trim()}
-                  onPress={() => {
-                    kor({ typ: "sms-ny", id: uid(), from: from.trim(), text: text.trim() });
-                    setFrom(""); setText("");
-                  }} />
-              </View>
-            </Card>
             <Card>
               {sms.length ? sms.map((m, i) => {
                 const w = who(s, m.from);
@@ -68,24 +57,11 @@ export function Inkorg() {
                     </View>
                   </Row>
                 );
-              }) : <Empty>Inga sms inlagda. Skriv in det du fått i formuläret ovanför.</Empty>}
+              }) : <Empty action={<Btn title="Nytt sms" kind="pri" onPress={() => open({ t: "sms" })} />}>Inga sms inlagda. Skriv in det du fått.</Empty>}
             </Card>
           </>
         ) : (
           <>
-            <Card title="Rapportera konstigt mejl, sms eller samtal">
-              <View style={{ padding: S.x4, gap: S.x3 }}>
-                <Choice label="Vem" value={incWho} onChange={setIncWho} scroll
-                  options={s.people.map(p => ({ key: p.name, label: p.name }))} />
-                <Field label="Vad hände" value={incText} onChange={setIncText} multiline
-                  placeholder="Sms om obetald faktura med länk" />
-                <Btn title="Rapportera" kind="pri" disabled={!incText.trim()}
-                  onPress={() => {
-                    kor({ typ: "rapport-ny", id: uid(), text: incText.trim(), who: incWho });
-                    setIncText("");
-                  }} />
-              </View>
-            </Card>
             <Card>
               {inc.length ? inc.map((i, n) => (
                 <Row key={i.id} last={n === inc.length - 1}
